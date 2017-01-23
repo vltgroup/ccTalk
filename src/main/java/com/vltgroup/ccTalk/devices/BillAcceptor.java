@@ -52,7 +52,12 @@ public class BillAcceptor extends BaseDevice{
   }
   
   private void queryChannelInfo() {
-    for(int channel = 1; channel < channelCostInCents.length; ++channel){
+    int maxChannel = channelCostInCents.length;
+    if(info.productCode.equals("LB BLN 1")){  //Alberici
+      maxChannel=9;
+    }
+    
+    for(int channel = 1; channel < maxChannel; ++channel){
       Responce response = executeCommandSync(CommandHeader.REQ_BillId, new byte[]{(byte)channel},7);
       
       if (response != null && response.isValid){
