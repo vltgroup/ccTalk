@@ -58,12 +58,25 @@ public class BillAcceptor extends BaseDevice{
     }
     
     for(int channel = 1; channel < maxChannel; ++channel){
-      Responce response = executeCommandSync(CommandHeader.REQ_BillId, new byte[]{(byte)channel},7);
-      
-      if (response != null && response.isValid){
+      Responce billId = executeCommandSync(CommandHeader.REQ_BillId, new byte[]{(byte)channel},7);
+            
+      if (billId != null && billId.isValid){
         try{
-          channelCostInCents[channel]=Integer.parseInt(new String(response.data, 2, 4))*100;
-          channelCostString[channel]=new String(response.data);
+          channelCostInCents[channel]=Integer.parseInt(new String(billId.data, 2, 4));//*100;
+          channelCostString[channel]=new String(billId.data);
+          
+          byte[] country =java.util.Arrays.copyOfRange(billId.data, 0, 2);
+          Responce scalingFactor = executeCommandSync(CommandHeader.REQ_ScalingFactor, country,3);
+          byte[] temp = scalingFactor.data;
+          int scaling = ( (temp[1]&0xFF) <<8 )+(temp[0] & 0xFF);
+          int decimal = temp[2];
+          
+          log.info(channelCostString[channel] + " scaling="+scaling+" decimal="+decimal);
+          channelCostInCents[channel]*=scaling;
+          if(decimal == 0){
+            channelCostInCents[channel]*=100;   //currency without cents, but we emulate them
+          }          
+          
         }catch(Exception ignored){
           channelCostInCents[channel]=0;
           channelCostString[channel]=null;

@@ -20,7 +20,7 @@ public enum CommandHeader {      //normal responce
     Read_Buffered_BillEvents(159),  //byte[11]
     RouteBill(154),                 //ACK
     REQ_BillId(157),                //byte[7]
-    
+    REQ_ScalingFactor(156),
 
     REQ_CoinId(184),
     REQ_InhibitStat(230),
