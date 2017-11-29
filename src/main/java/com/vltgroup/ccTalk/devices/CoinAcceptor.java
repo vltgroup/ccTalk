@@ -61,7 +61,7 @@ public class CoinAcceptor extends BaseDevice{
           channelCostInCents[channel]=Integer.parseInt(new String(response.data, 2, 3));
           channelCostString[channel]=new String(response.data);
           
-          log.info("channel index"+channel+"="+channelCostString[channel]);
+          log.info(info.shortString() + " channel index"+channel+"="+channelCostString[channel]);
         }catch(Exception ignored){
           channelCostInCents[channel]=0;
           channelCostString[channel]=null;

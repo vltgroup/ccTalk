@@ -1,5 +1,6 @@
 package com.vltgroup.ccTalk.examplePC;
 
+import static com.vltgroup.ccTalk.commands.Command.bytesToHex;
 import com.vltgroup.ccTalk.comport.ReceiveCallback;
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,21 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class ComPort implements com.vltgroup.ccTalk.comport.ComPort, Closeable{
   private static final Logger log = LoggerFactory.getLogger(ComPort.class.getName());
-  
-  final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
-  public static String bytesToHex(byte[] bytes) {
-    StringBuilder sb =new StringBuilder(bytes.length * 3);
-    for(int j = 0;j<bytes.length; ++j){
-        int v = bytes[j] & 0xFF;
-        sb.append(hexArray[v >>> 4]);
-        sb.append(hexArray[v & 0x0F]);
-        sb.append(' ');
-    }
-    return sb.toString();
-  }
-
-  
-  
+   
   private final SerialPort serialPort;
   
   public ComPort(String portName) throws SerialPortException{

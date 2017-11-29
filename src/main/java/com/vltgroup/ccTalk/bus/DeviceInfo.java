@@ -40,7 +40,7 @@ public class DeviceInfo {
   }
   
   public String shortString(){
-    return type.toString()+", at address:"+address.address;
+    return type.toString()+":"+address.address;
   }
   
 }

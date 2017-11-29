@@ -46,7 +46,7 @@ public abstract class BaseDevice implements Runnable{
   
   @Override
   public void run() {
-    log.info(info.type +" at address "+ info.address.address +" thread started");
+    log.info(info.shortString() +" thread started");
     while(run) {
       try {
         Thread.sleep(info.pollingInterval/2);
@@ -65,7 +65,7 @@ public abstract class BaseDevice implements Runnable{
         
         if(!notRespond) deviceTick();
         long tickEnd = System.currentTimeMillis();
-        log.debug("{}:{} between={}ms  self={}ms",info.type, info.address.address, tickBegin-prevEnd, tickEnd-tickBegin);
+        log.debug(info.shortString()+" between={}ms  self={}ms", tickBegin-prevEnd, tickEnd-tickBegin);
         prevEnd=tickEnd;
         
       } catch (Exception ex){
@@ -101,13 +101,13 @@ public abstract class BaseDevice implements Runnable{
   }
   
   public void setMasterInhibitStatusSync(boolean inhibit){
-    log.info("{}:{} set inhibit:{}",info.type, info.address.address ,inhibit);
+    log.info(info.shortString()+" set inhibit:{}",inhibit);
     m_lastInhibit=inhibit;
     executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{inhibit ? 0 : (byte)1},0);
   }
 
   public void setMasterInhibitStatusAsync(final boolean inhibit){
-    log.info("set inhibit:"+inhibit);
+    log.info(info.shortString()+" set inhibit:{}", inhibit);
     m_lastInhibit=inhibit;
     eventExecutor.submit(new Runnable() {
       @Override
@@ -118,19 +118,19 @@ public abstract class BaseDevice implements Runnable{
   }
 
   public void reset(int maxAttempToWakeUp, CommandHeader wakeUpCommand, int expectedDataLength){
-    log.info("reset "+info.shortString());
+    log.info(info.shortString() + " reset");
     executeCommandSync(CommandHeader.RESET_DEVICE, 0);
     
-    log.info("start waiting for response "+info.shortString());
+    log.info(info.shortString() + " start waiting for response");
     Responce response;
     
     do {
-      if(--maxAttempToWakeUp < 0) throw new RuntimeException("device not answer "+info.shortString());
+      if(--maxAttempToWakeUp < 0) throw new RuntimeException(info.shortString()+ " device not answer");
       try{ Thread.sleep(1000); }catch(InterruptedException ignored){  }
       response = executeCommandSync(wakeUpCommand, expectedDataLength);
-      log.info("waiting for response "+info.shortString());
+      log.info(info.shortString() + " waiting for response");
     } while(response == null || !response.isValid);
-    log.info("device - answered "+info.shortString());
+    log.info(info.shortString()+" device - answered");
   }
   
   
@@ -138,6 +138,6 @@ public abstract class BaseDevice implements Runnable{
   protected abstract void deviceTick();
 
   protected void loggingEvent(String message, int eventCounter, int code){
-    log.info("{}:{} "+message+" eventCounter:{} code:{}", info.type, info.address.address, eventCounter, code);
+    log.info(info.shortString()+ " "+message+" eventCounter:{} code:{}", eventCounter, code);
   }
 }

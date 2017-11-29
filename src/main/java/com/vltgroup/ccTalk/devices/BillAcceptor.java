@@ -71,7 +71,7 @@ public class BillAcceptor extends BaseDevice{
           int scaling = ( (temp[1]&0xFF) <<8 )+(temp[0] & 0xFF);
           int decimal = temp[2];
           
-          log.info("addr:{} channel index{}={} scaling={} decimal={}", info.address.address, channel, channelCostString[channel], scaling,decimal);
+          log.info(info.shortString()+" channel index{}={} scaling={} decimal={}", channel, channelCostString[channel], scaling,decimal);
           channelCostInCents[channel]*=scaling;
           if(decimal == 0){
             channelCostInCents[channel]*=100;   //currency without cents, but we emulate them
@@ -113,7 +113,7 @@ public class BillAcceptor extends BaseDevice{
             m_StartEscrow=System.currentTimeMillis(); 
             eventExecutor.submit(() -> {
               boolean toStack = controller.onBillEscrow(BillAcceptor.this, channelCostInCents[channelIndex]);
-              log.info("escrow request result: "+toStack);
+              log.info(info.shortString()+" escrow request result: "+toStack);
               
               if(toStack){
                 m_StartEscrow=-1;

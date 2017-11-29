@@ -231,6 +231,7 @@ public class Bus implements Closeable{
   }
 
   private byte[] sendCommand(Command command, DeviceMode mode) {
+    log.debug("addr={} cmd={} dat={}",command.destination.address,command.command,bytesToHex(command.data));
     fairLock.lock();   //fair sync here
     try{
       byte[] raw=getRawBytes(command, mode);
