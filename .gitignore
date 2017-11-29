@@ -1,1 +1,4 @@
 /target/
+/examplePC/target/
+/examplePC/nbproject/private/
+/examplePC/logs
