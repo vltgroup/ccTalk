@@ -47,7 +47,7 @@ public class BillAcceptor extends BaseDevice{
     executeCommandSync(CommandHeader.ModInhibitStat,new byte[]{(byte)0xFF,(byte)0xFF},0);//TODO: inhibit channel with zero cost
     executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0);
     if(!getNotRespondStatus()){
-      status("dummy", 0, STATUS_OK);
+      status("dummy after init", 0, STATUS_OK);
     }
   }
   

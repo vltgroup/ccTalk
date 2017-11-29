@@ -44,7 +44,7 @@ public class CoinAcceptor extends BaseDevice{
     executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0);
     
     if(!getNotRespondStatus()){
-      status("dummy", 0, STATUS_OK);
+      status("dummy after init", 0, STATUS_OK);
     }
   } 
   
