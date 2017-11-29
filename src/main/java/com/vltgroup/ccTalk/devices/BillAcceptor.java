@@ -71,7 +71,7 @@ public class BillAcceptor extends BaseDevice{
           int scaling = ( (temp[1]&0xFF) <<8 )+(temp[0] & 0xFF);
           int decimal = temp[2];
           
-          log.info("channel index"+channel+"="+channelCostString[channel] + " scaling="+scaling+" decimal="+decimal);
+          log.info("addr:{} channel index{}={} scaling={} decimal={}", info.address.address, channel, channelCostString[channel], scaling,decimal);
           channelCostInCents[channel]*=scaling;
           if(decimal == 0){
             channelCostInCents[channel]*=100;   //currency without cents, but we emulate them
@@ -97,68 +97,63 @@ public class BillAcceptor extends BaseDevice{
     
     for(int i=events.start_index;m_LastEventCounter != events.event_counter;--i){
       m_LastEventCounter=events.counter[i];
-      final int index=i;
-      
-      if(events.events[index][0] != 0){
-        switch(events.events[index][1]){
+
+      if(events.events[i][0] != 0){
+        final int channelIndex=events.events[i][0];
+        switch(events.events[i][1]){
           case 0:
-            loggingEvent("Bill validated correctly and sent to stacker",m_LastEventCounter,events.events[index][0]);
+            loggingEvent("Bill validated correctly and sent to stacker",m_LastEventCounter,channelIndex);
             setMasterInhibitStatusSync(true);
-            eventExecutor.submit(new Runnable() {
-              @Override
-              public void run() {
-                controller.onBillStacked(BillAcceptor.this, channelCostInCents[events.events[index][0]]);
-              }
+            eventExecutor.submit(() -> {
+              controller.onBillStacked(BillAcceptor.this, channelCostInCents[channelIndex]);
             });
             break;
           case 1:
-            loggingEvent("Bill validated correctly and held in escrow",m_LastEventCounter,events.events[index][0]);
+            loggingEvent("Bill validated correctly and held in escrow",m_LastEventCounter,channelIndex);
             m_StartEscrow=System.currentTimeMillis(); 
-            eventExecutor.submit(new Runnable() {
-              @Override
-              public void run() {
-                boolean toStack = controller.onBillEscrow(BillAcceptor.this, channelCostInCents[events.events[index][0]]);
-                log.info("escrow request result: "+toStack);
-                
-                if(toStack){
-                  m_StartEscrow=-1;
-                  executeCommandSync(CommandHeader.RouteBill,  new byte[]{(byte)1},-1);
-                }else{
-                  m_StartEscrow=-1;
-                  executeCommandSync(CommandHeader.RouteBill, new byte[]{(byte)0},-1);
-                }
+            eventExecutor.submit(() -> {
+              boolean toStack = controller.onBillEscrow(BillAcceptor.this, channelCostInCents[channelIndex]);
+              log.info("escrow request result: "+toStack);
+              
+              if(toStack){
+                m_StartEscrow=-1;
+                executeCommandSync(CommandHeader.RouteBill,  new byte[]{(byte)1},-1);
+              }else{
+                m_StartEscrow=-1;
+                executeCommandSync(CommandHeader.RouteBill, new byte[]{(byte)0},-1);
               }
             });
             break; 
-          default: hardwareFatal("billacc unknown event "+events.events[index][0],m_LastEventCounter, events.events[index][1]); break; 
+          default: hardwareFatal("billacc unknown event "+events.events[i][0],m_LastEventCounter, events.events[i][1]); break; 
         }
       }else{
-        switch(events.events[index][1]){
-          case 0: status("Master inhibit active",m_LastEventCounter,events.events[index][1]);                           break;
+        final int eventCode=events.events[i][1];
+        switch(eventCode){
+          case 0: status("Master inhibit active",m_LastEventCounter,eventCode);                           break;
             
-          case 1: status("Bill returned from escrow",m_LastEventCounter,events.events[index][1]);                       break;
-          case 2: status("Invalid bill (due to validation fail)",m_LastEventCounter,events.events[index][1]);           break;  
-          case 3: status("Invalid bill (due to transport problem)",m_LastEventCounter,events.events[index][1]);         break; 
-          case 4: status("Inhibited bill (on serial)",m_LastEventCounter,events.events[index][1]);                      break; 
-          case 5: status("Inhibited bill (on DIP switches)",m_LastEventCounter,events.events[index][1]);                break; 
+          case 1: status("Bill returned from escrow",m_LastEventCounter,eventCode);                       break;
+          case 2: status("Invalid bill (due to validation fail)",m_LastEventCounter,eventCode);           break;  
+          case 3: status("Invalid bill (due to transport problem)",m_LastEventCounter,eventCode);         break; 
+          case 4: status("Inhibited bill (on serial)",m_LastEventCounter,eventCode);                      break; 
+          case 5: status("Inhibited bill (on DIP switches)",m_LastEventCounter,eventCode);                break; 
 
-          case 10:status("Stacker OK",m_LastEventCounter,events.events[index][1]);                                      break;
-          case 11:status("Stacker removed",m_LastEventCounter,events.events[index][1]);                                 break;
-          case 12:status("Stacker inserted",m_LastEventCounter,events.events[index][1]);                                break;
-          case 14:status("Stacker full",m_LastEventCounter,events.events[index][1]);                                    break;
+          case 10:status("Stacker OK",m_LastEventCounter,eventCode);                                      break;
+          case 11:status("Stacker removed",m_LastEventCounter,eventCode);                                 break;
+          case 12:status("Stacker inserted",m_LastEventCounter,eventCode);                                break;
+          case 14:status("Stacker full",m_LastEventCounter,eventCode);                                    break;
             
 
-          case 6: hardwareFatal("Bill jammed in transport (unsafe mode)",m_LastEventCounter,events.events[index][1]);   break; 
-          case 7: hardwareFatal("Bill jammed in stacker",m_LastEventCounter,events.events[index][1]);                   break;             
-          case 13:hardwareFatal("Stacker faulty",m_LastEventCounter,events.events[index][1]);                           break;
-          case 15:hardwareFatal("Stacker jammed",m_LastEventCounter,events.events[index][1]);                           break; 
-          case 16:hardwareFatal("Bill jammed in transport (safe mode)",m_LastEventCounter,events.events[index][1]);     break; 
+          case 6: hardwareFatal("Bill jammed in transport (unsafe mode)",m_LastEventCounter,eventCode);   break; 
+          case 7: hardwareFatal("Bill jammed in stacker",m_LastEventCounter,eventCode);                   break;             
+          case 13:hardwareFatal("Stacker faulty",m_LastEventCounter,eventCode);                           break;
+          case 15:hardwareFatal("Stacker jammed",m_LastEventCounter,eventCode);                           break; 
+          case 16:hardwareFatal("Bill jammed in transport (safe mode)",m_LastEventCounter,eventCode);     break; 
 
-          case 8: fraudAttemt("Bill pulled backwards",m_LastEventCounter,events.events[index][1]);                      break; 
-          case 9: fraudAttemt("Bill tamper",m_LastEventCounter,events.events[index][1]);                                break;    
-          case 17:fraudAttemt("Opto fraud detected",m_LastEventCounter,events.events[index][1]);                        break; 
-          case 18:fraudAttemt("String fraud detected",m_LastEventCounter,events.events[index][1]);                      break; 
-          default:hardwareFatal("billacc unknown event",m_LastEventCounter, events.events[index][1]);                   break;
+          case 8: fraudAttemt("Bill pulled backwards",m_LastEventCounter,eventCode);                      break; 
+          case 9: fraudAttemt("Bill tamper",m_LastEventCounter,eventCode);                                break;    
+          case 17:fraudAttemt("Opto fraud detected",m_LastEventCounter,eventCode);                        break; 
+          case 18:fraudAttemt("String fraud detected",m_LastEventCounter,eventCode);                      break; 
+          default:hardwareFatal("billacc unknown event",m_LastEventCounter, eventCode);                   break;
         }
       }
     }
@@ -169,40 +164,28 @@ public class BillAcceptor extends BaseDevice{
     }
   }
   
-  private void loggingEvent(String message, int eventCounter, int code){
-    log.info(message+" eventCounter:{} code:{}",eventCounter, code);
-  }
-  
+ 
   private void fraudAttemt(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
     setMasterInhibitStatusSync(true);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onFraudAttemt(BillAcceptor.this, message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onFraudAttemt(BillAcceptor.this, message, eventCounter, code);
     });
   }
   
   private void hardwareFatal(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
     setMasterInhibitStatusSync(true);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onHardwareFatal(BillAcceptor.this,message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onHardwareFatal(BillAcceptor.this,message, eventCounter, code);
     });  
   }
   
   public static final int STATUS_OK=10;
   private void status(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onStatus(BillAcceptor.this,message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onStatus(BillAcceptor.this,message, eventCounter, code);
     });  
   }
     

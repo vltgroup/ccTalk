@@ -136,5 +136,8 @@ public abstract class BaseDevice implements Runnable{
   
   protected abstract void init(boolean makeReset);
   protected abstract void deviceTick();
-   
+
+  protected void loggingEvent(String message, int eventCounter, int code){
+    log.info("{}:{} "+message+" eventCounter:{} code:{}", info.type, info.address.address, eventCounter, code);
+  }
 }

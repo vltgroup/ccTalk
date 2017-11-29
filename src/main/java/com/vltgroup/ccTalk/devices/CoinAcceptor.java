@@ -82,113 +82,96 @@ public class CoinAcceptor extends BaseDevice{
     
     for(int i=events.start_index;m_LastEventCounter != events.event_counter;--i){
       m_LastEventCounter=events.counter[i];
-      final int index=i;
       
       if(events.events[i][0] != 0){
-        loggingEvent("Coin accepted",m_LastEventCounter,events.events[index][0]);
+        final int channelIndex=events.events[i][0];
+        loggingEvent("Coin accepted",m_LastEventCounter, channelIndex);
         setMasterInhibitStatusSync(true);
-        eventExecutor.submit(new Runnable() {
-          @Override
-          public void run() {
-            controller.onCoinAccepted(CoinAcceptor.this, channelCostInCents[events.events[index][0]]);
-          }
+        eventExecutor.submit(() -> {
+          controller.onCoinAccepted(CoinAcceptor.this, channelCostInCents[channelIndex]);
         });
       }else{
-        if(events.events[i][1] < 128){
+        final int eventCode=events.events[i][1];
+        if(eventCode < 128){
           setMasterInhibitStatusSync(true);
-          switch(events.events[i][1]){
-            case 0: status("Null event ( no error )",m_LastEventCounter,events.events[index][1]);                           break;
-            case 1: status("Reject coin",m_LastEventCounter,events.events[index][1]);                                       break;
-            case 2: status("Inhibited coin",m_LastEventCounter,events.events[index][1]);                                    break;
+          switch(eventCode){
+            case 0: status("Null event ( no error )",m_LastEventCounter,eventCode);                           break;
+            case 1: status("Reject coin",m_LastEventCounter,eventCode);                                       break;
+            case 2: status("Inhibited coin",m_LastEventCounter,eventCode);                                    break;
             
-            case 3: status("Multiple window",m_LastEventCounter,events.events[index][1]);                                   break;
-            case 4: hardwareFatal("Wake-up timeout",m_LastEventCounter,events.events[index][1]);                            break;
-            case 5: hardwareFatal("Validation timeout",m_LastEventCounter,events.events[index][1]);                         break;
-            case 6: hardwareFatal("Credit sensor timeout",m_LastEventCounter,events.events[index][1]);                      break;
-            case 7: hardwareFatal("Sorter opto timeout",m_LastEventCounter,events.events[index][1]);                        break;
-            case 8: coinInsertedTooQuikly("2nd close coin error",m_LastEventCounter,events.events[index][1]);               break; //quikly
-            case 9: coinInsertedTooQuikly("Accept gate not ready",m_LastEventCounter,events.events[index][1]);              break; //quikly
-            case 10:coinInsertedTooQuikly("Credit sensor not ready",m_LastEventCounter,events.events[index][1]);            break; //quikly
-            case 11:coinInsertedTooQuikly("Sorter not ready",m_LastEventCounter,events.events[index][1]);                   break; //quikly
-            case 12:coinInsertedTooQuikly("Reject coin not cleared",m_LastEventCounter,events.events[index][1]);            break; //quikly
-            case 13:hardwareFatal("Validation sensor not ready",m_LastEventCounter,events.events[index][1]);                break;
-            case 14:hardwareFatal("Credit sensor blocked",m_LastEventCounter,events.events[index][1]);                      break;
-            case 15:hardwareFatal("Sorter opto blocked",m_LastEventCounter,events.events[index][1]);                        break;
-            case 16:fraudAttemt("Credit sequence error",m_LastEventCounter,events.events[index][1]);                        break;
-            case 17:fraudAttemt("Coin going backwards",m_LastEventCounter,events.events[index][1]);                         break;
-            case 18:fraudAttemt("Coin too fast (over credit sensor)",m_LastEventCounter,events.events[index][1]);           break;
-            case 19:fraudAttemt("Coin too slow (over credit sensor)",m_LastEventCounter,events.events[index][1]);           break;
-            case 20:fraudAttemt("C.O.S. mechanism activated (coin-on-string)",m_LastEventCounter,events.events[index][1]);  break;
-            case 21:hardwareFatal("DCE opto timeout",m_LastEventCounter,events.events[index][1]);                           break;
-            case 22:fraudAttemt("DCE opto not seen",m_LastEventCounter,events.events[index][1]);                            break;
-            case 23:fraudAttemt("Credit sensor reached too early",m_LastEventCounter,events.events[index][1]);              break;
-            case 24:fraudAttemt("Reject coin (repeated sequential trip)",m_LastEventCounter,events.events[index][1]);       break;
-            case 25:fraudAttemt("Reject slug",m_LastEventCounter,events.events[index][1]);                                  break;
-            case 26:hardwareFatal("Reject sensor blocked",m_LastEventCounter,events.events[index][1]);                      break;
-            case 27:hardwareFatal("Games overload",m_LastEventCounter,events.events[index][1]);                             break;
-            case 28:hardwareFatal("Max. coin meter pulses exceeded",m_LastEventCounter,events.events[index][1]);            break;
-            case 29:hardwareFatal("Accept gate open not closed",m_LastEventCounter,events.events[index][1]);                break;  
-            case 30:hardwareFatal("Accept gate closed not open",m_LastEventCounter,events.events[index][1]);                break;  
-            case 31:hardwareFatal("Manifold opto timeout",m_LastEventCounter,events.events[index][1]);                      break;
-            case 32:hardwareFatal("Manifold opto blocked",m_LastEventCounter,events.events[index][1]);                      break;
-            case 33:coinInsertedTooQuikly("Manifold not ready",m_LastEventCounter,events.events[index][1]);                 break;    //quikly
-            case 34:fraudAttemt("Security status changed",m_LastEventCounter,events.events[index][1]);                      break;
-            case 35:hardwareFatal("Motor exception",m_LastEventCounter,events.events[index][1]);                            break;
-            default:hardwareFatal("coinacc unknown event {}",m_LastEventCounter,events.events[index][1]);                   break;
+            case 3: status("Multiple window",m_LastEventCounter,eventCode);                                   break;
+            case 4: hardwareFatal("Wake-up timeout",m_LastEventCounter,eventCode);                            break;
+            case 5: hardwareFatal("Validation timeout",m_LastEventCounter,eventCode);                         break;
+            case 6: hardwareFatal("Credit sensor timeout",m_LastEventCounter,eventCode);                      break;
+            case 7: hardwareFatal("Sorter opto timeout",m_LastEventCounter,eventCode);                        break;
+            case 8: coinInsertedTooQuikly("2nd close coin error",m_LastEventCounter,eventCode);               break; //quikly
+            case 9: coinInsertedTooQuikly("Accept gate not ready",m_LastEventCounter,eventCode);              break; //quikly
+            case 10:coinInsertedTooQuikly("Credit sensor not ready",m_LastEventCounter,eventCode);            break; //quikly
+            case 11:coinInsertedTooQuikly("Sorter not ready",m_LastEventCounter,eventCode);                   break; //quikly
+            case 12:coinInsertedTooQuikly("Reject coin not cleared",m_LastEventCounter,eventCode);            break; //quikly
+            case 13:hardwareFatal("Validation sensor not ready",m_LastEventCounter,eventCode);                break;
+            case 14:hardwareFatal("Credit sensor blocked",m_LastEventCounter,eventCode);                      break;
+            case 15:hardwareFatal("Sorter opto blocked",m_LastEventCounter,eventCode);                        break;
+            case 16:fraudAttemt("Credit sequence error",m_LastEventCounter,eventCode);                        break;
+            case 17:fraudAttemt("Coin going backwards",m_LastEventCounter,eventCode);                         break;
+            case 18:fraudAttemt("Coin too fast (over credit sensor)",m_LastEventCounter,eventCode);           break;
+            case 19:fraudAttemt("Coin too slow (over credit sensor)",m_LastEventCounter,eventCode);           break;
+            case 20:fraudAttemt("C.O.S. mechanism activated (coin-on-string)",m_LastEventCounter,eventCode);  break;
+            case 21:hardwareFatal("DCE opto timeout",m_LastEventCounter,eventCode);                           break;
+            case 22:fraudAttemt("DCE opto not seen",m_LastEventCounter,eventCode);                            break;
+            case 23:fraudAttemt("Credit sensor reached too early",m_LastEventCounter,eventCode);              break;
+            case 24:fraudAttemt("Reject coin (repeated sequential trip)",m_LastEventCounter,eventCode);       break;
+            case 25:fraudAttemt("Reject slug",m_LastEventCounter,eventCode);                                  break;
+            case 26:hardwareFatal("Reject sensor blocked",m_LastEventCounter,eventCode);                      break;
+            case 27:hardwareFatal("Games overload",m_LastEventCounter,eventCode);                             break;
+            case 28:hardwareFatal("Max. coin meter pulses exceeded",m_LastEventCounter,eventCode);            break;
+            case 29:hardwareFatal("Accept gate open not closed",m_LastEventCounter,eventCode);                break;  
+            case 30:hardwareFatal("Accept gate closed not open",m_LastEventCounter,eventCode);                break;  
+            case 31:hardwareFatal("Manifold opto timeout",m_LastEventCounter,eventCode);                      break;
+            case 32:hardwareFatal("Manifold opto blocked",m_LastEventCounter,eventCode);                      break;
+            case 33:coinInsertedTooQuikly("Manifold not ready",m_LastEventCounter,eventCode);                 break;    //quikly
+            case 34:fraudAttemt("Security status changed",m_LastEventCounter,eventCode);                      break;
+            case 35:hardwareFatal("Motor exception",m_LastEventCounter,eventCode);                            break;
+            default:hardwareFatal("coinacc unknown event {}",m_LastEventCounter,eventCode);                   break;
           }
-        }else if(128<= events.events[i][1] &&  events.events[i][1] <= 159){
-          status("inhibited coin", m_LastEventCounter, events.events[i][1]);
-        }else if(events.events[i][1] > 159){
-          hardwareFatal("coinacc unknown event", m_LastEventCounter,events.events[index][1]); 
+        }else if(128<= eventCode &&  eventCode <= 159){
+          status("inhibited coin", m_LastEventCounter, eventCode);
+        }else if(eventCode > 159){
+          hardwareFatal("coinacc unknown event", m_LastEventCounter,eventCode); 
         }
       }
     }
   }
   
-  private void loggingEvent(String message, int eventCounter, int code){
-    log.info(message+" eventCounter:{} code:{}",eventCounter, code);
-  }
   
   
   private void fraudAttemt(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
     setMasterInhibitStatusSync(true);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onFraudAttemt(CoinAcceptor.this,message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onFraudAttemt(CoinAcceptor.this,message, eventCounter, code);
     });
   }
   
   private void hardwareFatal(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
     setMasterInhibitStatusSync(true);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onHardwareFatal(CoinAcceptor.this,message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onHardwareFatal(CoinAcceptor.this,message, eventCounter, code);
     });  
   }
   
   public static final int STATUS_OK=0;
   private void status(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onStatus(CoinAcceptor.this,message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onStatus(CoinAcceptor.this,message, eventCounter, code);
     });      
   }
   private void coinInsertedTooQuikly(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
-    eventExecutor.submit(new Runnable() {
-      @Override
-      public void run() {
-        controller.onCoinInsertedTooQuikly(CoinAcceptor.this,message, eventCounter, code);
-      }
+    eventExecutor.submit(() -> {
+      controller.onCoinInsertedTooQuikly(CoinAcceptor.this,message, eventCounter, code);
     });  
   }
   
