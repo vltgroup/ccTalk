@@ -1,7 +1,6 @@
 package com.vltgroup.ccTalk.bus;
 
 import com.vltgroup.ccTalk.comport.ComPort;
-import com.vltgroup.ccTalk.comport.ComPortPacketer;
 import static com.vltgroup.ccTalk.commands.BNVEncode.IsValidBNVCode;
 import com.vltgroup.ccTalk.commands.Command;
 import static com.vltgroup.ccTalk.commands.Command.bytesToHex;
@@ -13,12 +12,12 @@ import com.vltgroup.ccTalk.devices.BillAcceptorController;
 import com.vltgroup.ccTalk.devices.CoinAcceptor;
 import com.vltgroup.ccTalk.devices.CoinAcceptorController;
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,7 @@ public class Bus implements Closeable{
   private static final Logger log = LoggerFactory.getLogger(Bus.class.getName());
   
   private final ComPortPacketer port;
-  private final ComPort comPortPort;
+  private final ReentrantLock fairLock;
   private final Map<Address, DeviceMode> busMode = new HashMap<>();
   protected final ExecutorService devicesExecutor;
   protected final Map<Address,BaseDevice> activeDevices = new HashMap<>();
@@ -37,11 +36,11 @@ public class Bus implements Closeable{
 
   private final byte[] BNVCode;
   
-  private static final int betweenBytesTimeout=40;
-  private static final int beforeFirstByteTimeout=100;
+  private static final int betweenBytesTimeout=50;       //ccTalk part 1 v4.6   11.1
+  private static final int beforeFirstByteTimeout=100;   //ccTalk standart says that it can be even 2 seconds - but it unusable, because ccTalk devices don't have any anticollision logic
     
   public Bus(ComPort port, byte[] BNVCode) {
-    this.comPortPort=port;
+    fairLock=new ReentrantLock(true);
     this.port = new ComPortPacketer(port, betweenBytesTimeout, beforeFirstByteTimeout,ComPortPacketer.EchoMode.intelligentEcho);
     //Command packetForDetectEcho = new Command(Address.ccHostDevId, CommandHeader.SIMPLE_POLL);
     //this.port.detectEcho(packetForDetectEcho.getBytesCRC8());
@@ -66,7 +65,9 @@ public class Bus implements Closeable{
         log.info("find:"+(0xFF & deviceId));
       }
     }
-
+    log.info("scan FINISHED");
+    
+    
     ArrayList<DeviceInfo> billAcc = new ArrayList<>();
     ArrayList<DeviceInfo> coinAcc = new ArrayList<>();
     ArrayList<DeviceInfo> hopper = new ArrayList<>();
@@ -162,18 +163,22 @@ public class Bus implements Closeable{
   public synchronized BillAcceptor createBillAcceptor(DeviceInfo info, BillAcceptorController controller){
     if(activeDevices.containsKey(info.address)) throw new RuntimeException("try to create device on addres already in use");
     
+    log.info("Start creating BillAcceptor");
     BillAcceptor result = new BillAcceptor(this, info, controller);
     devicesExecutor.submit(result);
     activeDevices.put(info.address, result);
+    log.info("End creating BillAcceptor, bill acc thread started");
     return result;
   }
   
   public synchronized CoinAcceptor createCoinAcceptor(DeviceInfo info, CoinAcceptorController controller){
     if(activeDevices.containsKey(info.address)) throw new RuntimeException("try to create device on addres already in use");
     
+    log.info("Start creating CoinAcceptor");
     CoinAcceptor result = new CoinAcceptor(this, info, controller); 
     devicesExecutor.submit(result);
     activeDevices.put(info.address, result);
+    log.info("End creating CoinAcceptor, coin acc thread started");
     return result;
   }
   
@@ -205,7 +210,7 @@ public class Bus implements Closeable{
     return executeCommand(command,expectedDataLength, 3);
   }
   
-  synchronized private Responce executeCommand(Command command, int expectedDataLength, int retry) {
+  private Responce executeCommand(Command command, int expectedDataLength, int retry) {
     Responce response=null;
     
     do {
@@ -214,9 +219,9 @@ public class Bus implements Closeable{
       response = Command.decodeCommand(command.destination, raw, mode, BNVCode, expectedDataLength);
     } while(retry-- > 1 && (response==null || !response.isValid)); 
     if(response == null){
-      log.info("no respond on command: {} {}",command.command,  bytesToHex(command.data));
+      log.info("no respond on command addr={} cmd={} dat={}",command.destination.address, command.command,  bytesToHex(command.data));
     }else if(!response.isValid){
-      log.info("respond on command: {} {} is invaid: {} {}",command.command,  bytesToHex(command.data), response.responceHeader, bytesToHex(response.data));
+      log.info("respond on command  addr={} cmd={} dat={} is invaid: {} {}",command.destination.address, command.command,  bytesToHex(command.data), response.responceHeader, bytesToHex(response.data));
     }
     return response;
   }
@@ -226,8 +231,14 @@ public class Bus implements Closeable{
   }
 
   private byte[] sendCommand(Command command, DeviceMode mode) {
-    byte[] raw=getRawBytes(command, mode);
-    return port.sendPacket(raw, 0);
+    fairLock.lock();   //fair sync here
+    try{
+      byte[] raw=getRawBytes(command, mode);
+      return port.sendPacket(raw, 0);
+    }finally{
+      fairLock.unlock();
+    }
+    
   }
   
   private byte[] getRawBytes(Command command, DeviceMode mode){

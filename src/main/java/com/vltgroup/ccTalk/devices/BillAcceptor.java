@@ -71,7 +71,7 @@ public class BillAcceptor extends BaseDevice{
           int scaling = ( (temp[1]&0xFF) <<8 )+(temp[0] & 0xFF);
           int decimal = temp[2];
           
-          log.info(channelCostString[channel] + " scaling="+scaling+" decimal="+decimal);
+          log.info("channel index"+channel+"="+channelCostString[channel] + " scaling="+scaling+" decimal="+decimal);
           channelCostInCents[channel]*=scaling;
           if(decimal == 0){
             channelCostInCents[channel]*=100;   //currency without cents, but we emulate them

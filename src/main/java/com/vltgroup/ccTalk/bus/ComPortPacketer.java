@@ -1,5 +1,7 @@
-package com.vltgroup.ccTalk.comport;
+package com.vltgroup.ccTalk.bus;
 
+import com.vltgroup.ccTalk.comport.ComPort;
+import com.vltgroup.ccTalk.comport.ReceiveCallback;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
@@ -8,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ComPortPacketer implements ReceiveCallback{
+class ComPortPacketer implements ReceiveCallback{
   private static final Logger log = LoggerFactory.getLogger(ComPortPacketer.class.getName());
   public static enum EchoMode{
     echoOff, hardEchoOn, intelligentEcho

@@ -12,9 +12,8 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BaseDevice implements Runnable{
   private static final Logger log = LoggerFactory.getLogger(BaseDevice.class.getName());
-  //public static final int MAX_CAHNNEL_COST=5000; // Maximum absolute (NOT in cents) channel cost that will accepted
-  protected final long[]   channelCostInCents = new long[17];
-  protected final String[] channelCostString = new String[17];
+  protected final long[]   channelCostInCents = new long[16];  //command 231 - Modify inhibit status suport only 16 channels
+  protected final String[] channelCostString = new String[16];
   
   public final        Bus             bus;
   public final        DeviceInfo      info;
@@ -24,6 +23,7 @@ public abstract class BaseDevice implements Runnable{
   private   volatile boolean  notRespond;
   protected volatile boolean  m_lastInhibit;
   private final BaseController controller;
+  private long                prevEnd;   
   
   public BaseDevice(Bus bus, DeviceInfo info, BaseController controller){
     this.bus=bus;
@@ -33,6 +33,7 @@ public abstract class BaseDevice implements Runnable{
     notRespond=false;
     m_lastInhibit=true;
     this.controller=controller;
+    prevEnd=System.currentTimeMillis();
   }
   
   public String[] getChannelCost(){
@@ -45,9 +46,12 @@ public abstract class BaseDevice implements Runnable{
   
   @Override
   public void run() {
+    log.info(info.type +" at address "+ info.address.address +" thread started");
     while(run) {
       try {
         Thread.sleep(info.pollingInterval/2);
+        long tickBegin = System.currentTimeMillis();
+                  
         if(notRespond){
           init(true);
           notRespond=false;
@@ -60,6 +64,10 @@ public abstract class BaseDevice implements Runnable{
         }
         
         if(!notRespond) deviceTick();
+        long tickEnd = System.currentTimeMillis();
+        log.debug("{}:{} between={}ms  self={}ms",info.type, info.address.address, tickBegin-prevEnd, tickEnd-tickBegin);
+        prevEnd=tickEnd;
+        
       } catch (Exception ex){
         log.warn("",ex);
       }
@@ -93,7 +101,7 @@ public abstract class BaseDevice implements Runnable{
   }
   
   public void setMasterInhibitStatusSync(boolean inhibit){
-    log.info("set inhibit:"+inhibit);
+    log.info("{}:{} set inhibit:{}",info.type, info.address.address ,inhibit);
     m_lastInhibit=inhibit;
     executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{inhibit ? 0 : (byte)1},0);
   }

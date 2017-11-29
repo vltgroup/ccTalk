@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 
 public class CoinAcceptor extends BaseDevice{
-  private static final Logger log = LoggerFactory.getLogger(BillAcceptor.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(CoinAcceptor.class.getName());
   
   private int                           m_LastEventCounter;
   private final CoinAcceptorController  controller;
@@ -60,6 +60,8 @@ public class CoinAcceptor extends BaseDevice{
         try{
           channelCostInCents[channel]=Integer.parseInt(new String(response.data, 2, 3));
           channelCostString[channel]=new String(response.data);
+          
+          log.info("channel index"+channel+"="+channelCostString[channel]);
         }catch(Exception ignored){
           channelCostInCents[channel]=0;
           channelCostString[channel]=null;
