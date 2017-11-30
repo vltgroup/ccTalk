@@ -102,7 +102,9 @@ public class Bus implements Closeable{
   }
 
   private byte[] scanBus(DeviceMode mode) {
-    byte[] raw = getRawBytes(Command.AddessPoll, mode);
+    final Command command=Command.AddessPoll;
+    log.debug("addr={} cmd={} dat={}",command.destination.address,command.command,bytesToHex(command.data));
+    byte[] raw = getRawBytes(command, mode);
     return port.sendPacket(raw, 1500);
   }
   
