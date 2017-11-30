@@ -87,7 +87,7 @@ public abstract class BaseDevice implements Runnable{
    * @param expectedDataLength if negative - means does'n matter
    */
   public Responce executeCommandSync(CommandHeader command, byte[] data,  int expectedDataLength){
-    Responce responce =bus.executeCommand(new Command(info.address,command, data),-1);
+    Responce responce =bus.executeCommand(new Command(info.address,command, data),expectedDataLength);
     if(responce == null || !responce.isValid){
       notRespond=true;
       eventExecutor.submit(new Runnable() {
