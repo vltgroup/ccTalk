@@ -140,4 +140,7 @@ public abstract class BaseDevice implements Runnable{
   protected void loggingEvent(String message, int eventCounter, int code){
     log.info(info.shortString()+ " "+message+" eventCounter:{} code:{}", eventCounter, code);
   }
+    protected void loggingEvent(String message, int eventCounter, int code1, int code2){
+    log.info(info.shortString()+ " "+message+" eventCounter:{} code1:{} code2:{}", eventCounter, code1, code2);
+  }
 }

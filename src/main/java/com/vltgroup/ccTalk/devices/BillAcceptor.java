@@ -6,6 +6,7 @@ import com.vltgroup.ccTalk.bus.DeviceType;
 
 import com.vltgroup.ccTalk.commands.CommandHeader;
 import com.vltgroup.ccTalk.commands.Responce;
+import static com.vltgroup.ccTalk.devices.BillAcceptorEventCodes.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public class BillAcceptor extends BaseDevice{
     executeCommandSync(CommandHeader.ModInhibitStat,new byte[]{(byte)0xFF,(byte)0xFF},0);//TODO: inhibit channel with zero cost
     executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0);
     if(!getNotRespondStatus()){
-      status("dummy after init", 0, STATUS_OK);
+      status("dummy after init", 0, StackerOK);
     }
   }
   
@@ -124,36 +125,36 @@ public class BillAcceptor extends BaseDevice{
               }
             });
             break; 
-          default: hardwareFatal("billacc unknown event "+events.events[i][0],m_LastEventCounter, events.events[i][1]); break; 
+          default: unknownEvent(m_LastEventCounter, events.events[i][0], events.events[i][1]); break; 
         }
       }else{
         final int eventCode=events.events[i][1];
         switch(eventCode){
-          case 0: status("Master inhibit active",m_LastEventCounter,eventCode);                           break;
+          case MasterInhibit: status("Master inhibit active",m_LastEventCounter,eventCode);                             break;
             
-          case 1: status("Bill returned from escrow",m_LastEventCounter,eventCode);                       break;
-          case 2: status("Invalid bill (due to validation fail)",m_LastEventCounter,eventCode);           break;  
-          case 3: status("Invalid bill (due to transport problem)",m_LastEventCounter,eventCode);         break; 
-          case 4: status("Inhibited bill (on serial)",m_LastEventCounter,eventCode);                      break; 
-          case 5: status("Inhibited bill (on DIP switches)",m_LastEventCounter,eventCode);                break; 
+          case BillReturned: status("Bill returned from escrow",m_LastEventCounter,eventCode);                          break;
+          case BillReject_ByValidation: status("Invalid bill (due to validation fail)",m_LastEventCounter,eventCode);   break;  
+          case BillReject_Transport: status("Invalid bill (due to transport problem)",m_LastEventCounter,eventCode);    break; 
+          case BillReject_Inhibited1: status("Inhibited bill (on serial)",m_LastEventCounter,eventCode);                break; 
+          case BillReject_Inhibited2: status("Inhibited bill (on DIP switches)",m_LastEventCounter,eventCode);          break; 
 
-          case 10:status("Stacker OK",m_LastEventCounter,eventCode);                                      break;
-          case 11:status("Stacker removed",m_LastEventCounter,eventCode);                                 break;
-          case 12:status("Stacker inserted",m_LastEventCounter,eventCode);                                break;
-          case 14:status("Stacker full",m_LastEventCounter,eventCode);                                    break;
+          case StackerOK:status("Stacker OK",m_LastEventCounter,eventCode);                                             break;
+          case StackerRremoved:status("Stacker removed",m_LastEventCounter,eventCode);                                  break;
+          case StackerInserted:status("Stacker inserted",m_LastEventCounter,eventCode);                                 break;
+          case StackerFull:status("Stacker full",m_LastEventCounter,eventCode);                                         break;
             
 
-          case 6: hardwareFatal("Bill jammed in transport (unsafe mode)",m_LastEventCounter,eventCode);   break; 
-          case 7: hardwareFatal("Bill jammed in stacker",m_LastEventCounter,eventCode);                   break;             
-          case 13:hardwareFatal("Stacker faulty",m_LastEventCounter,eventCode);                           break;
-          case 15:hardwareFatal("Stacker jammed",m_LastEventCounter,eventCode);                           break; 
-          case 16:hardwareFatal("Bill jammed in transport (safe mode)",m_LastEventCounter,eventCode);     break; 
+          case BillJammedInsafe: hardwareFatal("Bill jammed in transport (unsafe mode)",m_LastEventCounter,eventCode);  break; 
+          case BillJammedInStacker: hardwareFatal("Bill jammed in stacker",m_LastEventCounter,eventCode);               break;             
+          case StackerFaulty:hardwareFatal("Stacker faulty",m_LastEventCounter,eventCode);                              break;
+          case StackerJammed:hardwareFatal("Stacker jammed",m_LastEventCounter,eventCode);                              break; 
+          case BillJammedSafe:hardwareFatal("Bill jammed in transport (safe mode)",m_LastEventCounter,eventCode);       break; 
 
-          case 8: fraudAttemt("Bill pulled backwards",m_LastEventCounter,eventCode);                      break; 
-          case 9: fraudAttemt("Bill tamper",m_LastEventCounter,eventCode);                                break;    
-          case 17:fraudAttemt("Opto fraud detected",m_LastEventCounter,eventCode);                        break; 
-          case 18:fraudAttemt("String fraud detected",m_LastEventCounter,eventCode);                      break; 
-          default:hardwareFatal("billacc unknown event",m_LastEventCounter, eventCode);                   break;
+          case BillPulledBackwards: fraudAttemt("Bill pulled backwards",m_LastEventCounter,eventCode);                  break; 
+          case BillTamper: fraudAttemt("Bill tamper",m_LastEventCounter,eventCode);                                     break;    
+          case OptoFraud:fraudAttemt("Opto fraud detected",m_LastEventCounter,eventCode);                               break; 
+          case StringFraud:fraudAttemt("String fraud detected",m_LastEventCounter,eventCode);                           break; 
+          default:unknownEvent(m_LastEventCounter,events.events[i][0], eventCode);                                      break;
         }
       }
     }
@@ -181,12 +182,16 @@ public class BillAcceptor extends BaseDevice{
     });  
   }
   
-  public static final int STATUS_OK=10;
   private void status(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
     eventExecutor.submit(() -> {
       controller.onStatus(BillAcceptor.this,message, eventCounter, code);
     });  
   }
-    
+  private void unknownEvent(final int eventCounter, final int code1, final int code2){
+    loggingEvent("billacc unknown event", eventCounter, code1,code2);
+    eventExecutor.submit(() -> {
+      controller.onUnknownEvent(BillAcceptor.this, eventCounter, code1,code2);
+    });  
+  }
 }

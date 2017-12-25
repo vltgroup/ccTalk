@@ -4,7 +4,7 @@ package com.vltgroup.ccTalk.commands;
 public class Crc16 {
 
     private int crc = 0;          // initial value
-    private int polynomial = 0x1021;   // 0001 0000 0010 0001  (0, 5, 12)
+    private final int polynomial = 0x1021;   // 0001 0000 0010 0001  (0, 5, 12)
 
     public int getCRC() {
         return crc & 0xffff;

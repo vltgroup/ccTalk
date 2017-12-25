@@ -5,6 +5,7 @@ import com.vltgroup.ccTalk.bus.DeviceInfo;
 import com.vltgroup.ccTalk.bus.DeviceType;
 import com.vltgroup.ccTalk.commands.CommandHeader;
 import com.vltgroup.ccTalk.commands.Responce;
+import static com.vltgroup.ccTalk.devices.CoinAcceptorEventCodes.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,14 +96,14 @@ public class CoinAcceptor extends BaseDevice{
         if(eventCode < 128){
           setMasterInhibitStatusSync(true);
           switch(eventCode){
-            case 0: status("Null event ( no error )",m_LastEventCounter,eventCode);                           break;
-            case 1: status("Reject coin",m_LastEventCounter,eventCode);                                       break;
-            case 2: status("Inhibited coin",m_LastEventCounter,eventCode);                                    break;
+            case NullEvent: status("Null event ( no error )",m_LastEventCounter,eventCode);                           break;
+            case RejectCoin: status("Reject coin",m_LastEventCounter,eventCode);                                       break;
+            case InhibitedCoin: status("Inhibited coin",m_LastEventCounter,eventCode);                                    break;
             
-            case 3: status("Multiple window",m_LastEventCounter,eventCode);                                   break;
-            case 4: hardwareFatal("Wake-up timeout",m_LastEventCounter,eventCode);                            break;
-            case 5: hardwareFatal("Validation timeout",m_LastEventCounter,eventCode);                         break;
-            case 6: hardwareFatal("Credit sensor timeout",m_LastEventCounter,eventCode);                      break;
+            case MultipleWindow: status("Multiple window",m_LastEventCounter,eventCode);                                   break;
+            case WakeupTimeout: hardwareFatal("Wake-up timeout",m_LastEventCounter,eventCode);                            break;
+            case ValidationTimeout: hardwareFatal("Validation timeout",m_LastEventCounter,eventCode);                         break;
+            case CreditSensorTimeout: hardwareFatal("Credit sensor timeout",m_LastEventCounter,eventCode);                      break;
             case 7: hardwareFatal("Sorter opto timeout",m_LastEventCounter,eventCode);                        break;
             case 8: coinInsertedTooQuikly("2nd close coin error",m_LastEventCounter,eventCode);               break; //quikly
             case 9: coinInsertedTooQuikly("Accept gate not ready",m_LastEventCounter,eventCode);              break; //quikly
@@ -132,12 +133,12 @@ public class CoinAcceptor extends BaseDevice{
             case 33:coinInsertedTooQuikly("Manifold not ready",m_LastEventCounter,eventCode);                 break;    //quikly
             case 34:fraudAttemt("Security status changed",m_LastEventCounter,eventCode);                      break;
             case 35:hardwareFatal("Motor exception",m_LastEventCounter,eventCode);                            break;
-            default:hardwareFatal("coinacc unknown event {}",m_LastEventCounter,eventCode);                   break;
+            default:unknownEvent(m_LastEventCounter,events.events[i][0],eventCode);                   break;
           }
         }else if(128<= eventCode &&  eventCode <= 159){
           status("inhibited coin", m_LastEventCounter, eventCode);
         }else if(eventCode > 159){
-          hardwareFatal("coinacc unknown event", m_LastEventCounter,eventCode); 
+          unknownEvent(m_LastEventCounter,events.events[i][0],eventCode); 
         }
       }
     }
@@ -172,6 +173,12 @@ public class CoinAcceptor extends BaseDevice{
     loggingEvent(message, eventCounter, code);
     eventExecutor.submit(() -> {
       controller.onCoinInsertedTooQuikly(CoinAcceptor.this,message, eventCounter, code);
+    });  
+  }
+  private void unknownEvent(final int eventCounter, final int code1, final int code2){
+    loggingEvent("coinacc unknown event", eventCounter, code1,code2);
+    eventExecutor.submit(() -> {
+      controller.onUnknownEvent(CoinAcceptor.this, eventCounter, code1,code2);
     });  
   }
   
