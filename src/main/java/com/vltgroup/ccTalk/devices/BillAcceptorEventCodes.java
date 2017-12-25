@@ -16,11 +16,12 @@ public class BillAcceptorEventCodes {
   public static final int StackerInserted=12;         //Status 
   public static final int StackerFull=14;             //Status 
   
-  public static final int BillJammedInsafe=6;         //Fatal Error 
-  public static final int BillJammedInStacker=7;      //Fatal Error 
-  public static final int StackerFaulty=13;           //Fatal Error 
-  public static final int StackerJammed=15;           //Fatal Error 
-  public static final int BillJammedSafe=16;          //Fatal Error 
+  public static final int BillJammedInsafe=6;         //hardwareFatal
+  public static final int BillJammedInStacker=7;      //hardwareFatal
+  public static final int StackerFaulty=13;           //hardwareFatal
+  public static final int StackerJammed=15;           //hardwareFatal
+  public static final int BillJammedSafe=16;          //hardwareFatal
+  public static final int AntiStringFaulty=19;        //hardwareFatal
   
   public static final int BillPulledBackwards=8;      //Fraud Attempt 
   public static final int BillTamper=9;               //Fraud Attempt 

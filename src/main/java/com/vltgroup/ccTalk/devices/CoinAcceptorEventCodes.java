@@ -1,41 +1,49 @@
 package com.vltgroup.ccTalk.devices;
 
 public class CoinAcceptorEventCodes {
-  public static final int NullEvent=0;              //status
-  public static final int RejectCoin=1;             //status
-  public static final int InhibitedCoin=2;          //status
-            
-  public static final int MultipleWindow=3;         //status
-  public static final int WakeupTimeout=4;          //hardwareFatal
-  public static final int ValidationTimeout=5;      //hardwareFatal
-  public static final int CreditSensorTimeout=6;    //hardwareFatal
-  /*public static final int 7: hardwareFatal("Sorter opto timeout",m_LastEventCounter,eventCode);                        
-  public static final int 8: coinInsertedTooQuikly("2nd close coin error",m_LastEventCounter,eventCode);                //quikly
-  public static final int 9: coinInsertedTooQuikly("Accept gate not ready",m_LastEventCounter,eventCode);               //quikly
-  public static final int 10:coinInsertedTooQuikly("Credit sensor not ready",m_LastEventCounter,eventCode);             //quikly
-  public static final int 11:coinInsertedTooQuikly("Sorter not ready",m_LastEventCounter,eventCode);                    //quikly
-  public static final int 12:coinInsertedTooQuikly("Reject coin not cleared",m_LastEventCounter,eventCode);             //quikly
-  public static final int 13:hardwareFatal("Validation sensor not ready",m_LastEventCounter,eventCode);                
-  public static final int 14:hardwareFatal("Credit sensor blocked",m_LastEventCounter,eventCode);                      
-  public static final int 15:hardwareFatal("Sorter opto blocked",m_LastEventCounter,eventCode);                        
-  public static final int 16:fraudAttemt("Credit sequence error",m_LastEventCounter,eventCode);                        
-  public static final int 17:fraudAttemt("Coin going backwards",m_LastEventCounter,eventCode);                         
-  public static final int 18:fraudAttemt("Coin too fast (over credit sensor)",m_LastEventCounter,eventCode);           
-  public static final int 19:fraudAttemt("Coin too slow (over credit sensor)",m_LastEventCounter,eventCode);           
-  public static final int 20:fraudAttemt("C.O.S. mechanism activated (coin-on-string)",m_LastEventCounter,eventCode);  
-  public static final int 21:hardwareFatal("DCE opto timeout",m_LastEventCounter,eventCode);                           
-  public static final int 22:fraudAttemt("DCE opto not seen",m_LastEventCounter,eventCode);                            
-  public static final int 23:fraudAttemt("Credit sensor reached too early",m_LastEventCounter,eventCode);              
-  public static final int 24:fraudAttemt("Reject coin (repeated sequential trip)",m_LastEventCounter,eventCode);       
-  public static final int 25:fraudAttemt("Reject slug",m_LastEventCounter,eventCode);                                  
-  public static final int 26:hardwareFatal("Reject sensor blocked",m_LastEventCounter,eventCode);                      
-  public static final int 27:hardwareFatal("Games overload",m_LastEventCounter,eventCode);                             
-  public static final int 28:hardwareFatal("Max. coin meter pulses exceeded",m_LastEventCounter,eventCode);            
-  public static final int 29:hardwareFatal("Accept gate open not closed",m_LastEventCounter,eventCode);                  
-  public static final int 30:hardwareFatal("Accept gate closed not open",m_LastEventCounter,eventCode);                  
-  public static final int 31:hardwareFatal("Manifold opto timeout",m_LastEventCounter,eventCode);                      
-  public static final int 32:hardwareFatal("Manifold opto blocked",m_LastEventCounter,eventCode);                      
-  public static final int 33:coinInsertedTooQuikly("Manifold not ready",m_LastEventCounter,eventCode);                     //quikly
-  public static final int 34:fraudAttemt("Security status changed",m_LastEventCounter,eventCode);                      
-  public static final int 35:hardwareFatal("Motor exception",m_LastEventCounter,eventCode);                              */
+  public static final int NullEvent=0;                  //status
+  public static final int RejectCoin=1;                 //status
+  public static final int InhibitedCoin=2;              //status
+  public static final int MultipleWindow=3;             //status
+  
+  public static final int WakeupTimeout=4;              //hardwareFatal
+  public static final int ValidationTimeout=5;          //hardwareFatal
+  public static final int CreditSensorTimeout=6;        //hardwareFatal
+  public static final int SorterOptoTimeout=7;          //hardwareFatal                        
+  
+  public static final int nd2CloseCoin=8;               //coinInsertedTooQuikly
+  public static final int AcceptGateNotReady=9;         //coinInsertedTooQuikly
+  public static final int CreditSensorNotReady=10;      //coinInsertedTooQuikly
+  public static final int SorterNotReady=11;            //coinInsertedTooQuikly
+  public static final int RejectCoinNotCleared=12;      //coinInsertedTooQuikly
+  
+  public static final int ValidationSensorNotReady=13;  //hardwareFatal
+  public static final int CreditSensorBlocked=14;       //hardwareFatal
+  public static final int SorterOptoBlocked=15;         //hardwareFatal
+  public static final int CreditQequenceError=16;       //fraudAttemt
+  public static final int CoinGoingBackwards=17;        //fraudAttemt
+  public static final int CoinTooFast=18;               //fraudAttemt
+  public static final int CoinTooSlow=19;               //fraudAttemt
+  public static final int COSMechanismActivated=20;     //fraudAttemt
+  public static final int DCEOptoTimeout=21;            //hardwareFatal
+  public static final int DCEOptoNotSeen=22;            //fraudAttemt
+  public static final int CreditSensorReachedTooEarly=23;     //fraudAttemt
+  public static final int RejectCoinRepeatedSequentialTrip=24;//fraudAttemt
+  public static final int RejectSlug=25;                //fraudAttemt
+  public static final int RejectSensorBlocked=26;       //hardwareFatal
+  public static final int GamesOverload=27;             //hardwareFatal
+  public static final int MaxCoinMeterPulsesExceeded=28;//hardwareFatal
+  public static final int AcceptGateOpenNotClosed=29;   //hardwareFatal
+  public static final int AcceptGateClosedNotOpen=30;   //hardwareFatal
+  public static final int ManifoldOptoTimeout=31;       //hardwareFatal
+  public static final int ManifoldOptoBlocked=32;       //hardwareFatal
+  public static final int ManifoldNotReady=33;          //coinInsertedTooQuikly
+  public static final int SecurityStatusChanged=34;     //fraudAttemt
+  public static final int MotorException=35;            //hardwareFatal
+  
+  public static final int SwallowedCoin=36;             //hardwareFatal
+  public static final int CoinTooFastValidation=37;     //fraudAttemt
+  public static final int CoinTooSlowValidation=38;     //fraudAttemt
+  public static final int CoinIncorrectlySorted=39;     //hardwareFatal
+  public static final int ExternalLightAttack=40;       //fraudAttemt
 }

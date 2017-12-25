@@ -130,31 +130,32 @@ public class BillAcceptor extends BaseDevice{
       }else{
         final int eventCode=events.events[i][1];
         switch(eventCode){
-          case MasterInhibit: status("Master inhibit active",m_LastEventCounter,eventCode);                             break;
+          case MasterInhibit:           status("Master inhibit active",m_LastEventCounter,eventCode);                   break;
             
-          case BillReturned: status("Bill returned from escrow",m_LastEventCounter,eventCode);                          break;
-          case BillReject_ByValidation: status("Invalid bill (due to validation fail)",m_LastEventCounter,eventCode);   break;  
-          case BillReject_Transport: status("Invalid bill (due to transport problem)",m_LastEventCounter,eventCode);    break; 
-          case BillReject_Inhibited1: status("Inhibited bill (on serial)",m_LastEventCounter,eventCode);                break; 
-          case BillReject_Inhibited2: status("Inhibited bill (on DIP switches)",m_LastEventCounter,eventCode);          break; 
+          case BillReturned:            status("Bill returned from escrow",m_LastEventCounter,eventCode);               break;
+          case BillReject_ByValidation: reject("Invalid bill (due to validation fail)",m_LastEventCounter,eventCode);   break;  
+          case BillReject_Transport:    reject("Invalid bill (due to transport problem)",m_LastEventCounter,eventCode); break; 
+          case BillReject_Inhibited1:   status("Inhibited bill (on serial)",m_LastEventCounter,eventCode);              break; 
+          case BillReject_Inhibited2:   status("Inhibited bill (on DIP switches)",m_LastEventCounter,eventCode);        break; 
 
-          case StackerOK:status("Stacker OK",m_LastEventCounter,eventCode);                                             break;
-          case StackerRremoved:status("Stacker removed",m_LastEventCounter,eventCode);                                  break;
-          case StackerInserted:status("Stacker inserted",m_LastEventCounter,eventCode);                                 break;
-          case StackerFull:status("Stacker full",m_LastEventCounter,eventCode);                                         break;
+          case StackerOK:               status("Stacker OK",m_LastEventCounter,eventCode);                              break;
+          case StackerRremoved:         status("Stacker removed",m_LastEventCounter,eventCode);                         break;
+          case StackerInserted:         status("Stacker inserted",m_LastEventCounter,eventCode);                        break;
+          case StackerFull:             status("Stacker full",m_LastEventCounter,eventCode);                            break;
             
 
-          case BillJammedInsafe: hardwareFatal("Bill jammed in transport (unsafe mode)",m_LastEventCounter,eventCode);  break; 
-          case BillJammedInStacker: hardwareFatal("Bill jammed in stacker",m_LastEventCounter,eventCode);               break;             
-          case StackerFaulty:hardwareFatal("Stacker faulty",m_LastEventCounter,eventCode);                              break;
-          case StackerJammed:hardwareFatal("Stacker jammed",m_LastEventCounter,eventCode);                              break; 
-          case BillJammedSafe:hardwareFatal("Bill jammed in transport (safe mode)",m_LastEventCounter,eventCode);       break; 
+          case BillJammedInsafe:        hardwareFatal("Bill jammed in transport (unsafe mode)",m_LastEventCounter,eventCode); break; 
+          case BillJammedInStacker:     hardwareFatal("Bill jammed in stacker",m_LastEventCounter,eventCode);                 break;             
+          case StackerFaulty:           hardwareFatal("Stacker faulty",m_LastEventCounter,eventCode);                         break;
+          case StackerJammed:           hardwareFatal("Stacker jammed",m_LastEventCounter,eventCode);                         break; 
+          case BillJammedSafe:          hardwareFatal("Bill jammed in transport (safe mode)",m_LastEventCounter,eventCode);   break; 
+          case AntiStringFaulty:        hardwareFatal("Anti-string mechanism faulty",m_LastEventCounter,eventCode);           break; 
 
-          case BillPulledBackwards: fraudAttemt("Bill pulled backwards",m_LastEventCounter,eventCode);                  break; 
-          case BillTamper: fraudAttemt("Bill tamper",m_LastEventCounter,eventCode);                                     break;    
-          case OptoFraud:fraudAttemt("Opto fraud detected",m_LastEventCounter,eventCode);                               break; 
-          case StringFraud:fraudAttemt("String fraud detected",m_LastEventCounter,eventCode);                           break; 
-          default:unknownEvent(m_LastEventCounter,events.events[i][0], eventCode);                                      break;
+          case BillPulledBackwards:     fraudAttemt("Bill pulled backwards",m_LastEventCounter,eventCode);                    break; 
+          case BillTamper:              fraudAttemt("Bill tamper",m_LastEventCounter,eventCode);                              break;    
+          case OptoFraud:               fraudAttemt("Opto fraud detected",m_LastEventCounter,eventCode);                      break; 
+          case StringFraud:             fraudAttemt("String fraud detected",m_LastEventCounter,eventCode);                    break; 
+          default:unknownEvent(m_LastEventCounter,events.events[i][0], eventCode);                                            break;
         }
       }
     }
@@ -188,6 +189,14 @@ public class BillAcceptor extends BaseDevice{
       controller.onStatus(BillAcceptor.this,message, eventCounter, code);
     });  
   }
+  
+  private void reject(final String message, final int eventCounter, final int code){
+    loggingEvent(message, eventCounter, code);
+    eventExecutor.submit(() -> {
+      controller.onReject(BillAcceptor.this,message, eventCounter, code);
+    });  
+  }
+  
   private void unknownEvent(final int eventCounter, final int code1, final int code2){
     loggingEvent("billacc unknown event", eventCounter, code1,code2);
     eventExecutor.submit(() -> {
