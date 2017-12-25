@@ -45,7 +45,7 @@ public class CoinAcceptor extends BaseDevice{
     executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0);
     
     if(!getNotRespondStatus()){
-      status("dummy after init", 0, STATUS_OK);
+      status("dummy after init", 0, NullEvent);
     }
   } 
   
@@ -162,7 +162,6 @@ public class CoinAcceptor extends BaseDevice{
     });  
   }
   
-  public static final int STATUS_OK=0;
   private void status(final String message, final int eventCounter, final int code){
     loggingEvent(message, eventCounter, code);
     eventExecutor.submit(() -> {
