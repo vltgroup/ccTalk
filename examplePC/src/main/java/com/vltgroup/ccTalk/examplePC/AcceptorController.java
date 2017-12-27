@@ -66,12 +66,22 @@ public class AcceptorController implements BillAcceptorController, CoinAcceptorC
 
   @Override
   public void onDeviceNotRespond(BaseDevice device) {
-    //log.info("{}:{} {}",device.info.type,device.info.address.address);
+    //log.info("{}:{}",device.info.type,device.info.address.address);
   }
 
   @Override
   public void onDeviceRestored(BaseDevice device) {
-    //log.info("{}:{} {}",device.info.type,device.info.address.address);
+    //log.info("{}:{}",device.info.type,device.info.address.address);
+  }
+
+  @Override
+  public void onReject(BillAcceptor device, String message, int eventCounter, int code) {
+    //log.info("{}:{} {}",device.info.type,device.info.address.address,message);
+  }
+
+  @Override
+  public void onUnknownEvent(BaseDevice device, int eventCounter, int code1, int code2) {
+    //log.info("{}:{} counter:{} code1:{} code2{}",device.info.type,device.info.address.address,eventCounter, code1, code2);
   }
   
 }
