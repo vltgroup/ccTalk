@@ -42,5 +42,24 @@ public class DeviceInfo {
   public String shortString(){
     return type.toString()+":"+address.address;
   }
-  
+
+  @Override
+  public int hashCode() {
+    return address.address;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    final DeviceInfo other = (DeviceInfo) obj;
+    if (this.address.address != other.address.address) {
+      return false;
+    }
+    return true;
+  }
 }
