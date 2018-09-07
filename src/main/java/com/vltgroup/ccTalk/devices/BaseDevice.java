@@ -7,6 +7,7 @@ import com.vltgroup.ccTalk.commands.CommandHeader;
 import com.vltgroup.ccTalk.commands.Responce;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ public abstract class BaseDevice implements Runnable{
   protected volatile boolean  m_lastInhibit;
   private final BaseController controller;
   private long                prevEnd;   
+  private final Semaphore     finishSemaphore;
   
   public BaseDevice(Bus bus, DeviceInfo info, BaseController controller){
     this.bus=bus;
@@ -34,6 +36,7 @@ public abstract class BaseDevice implements Runnable{
     m_lastInhibit=true;
     this.controller=controller;
     prevEnd=System.currentTimeMillis();
+    finishSemaphore=new Semaphore(0);
   }
   
   public String[] getChannelCost(){
@@ -73,9 +76,15 @@ public abstract class BaseDevice implements Runnable{
       }
     }
     setMasterInhibitStatusSync(true);
+    finishSemaphore.release();
   }
+  
   public void stop(){
     run=false;
+    try{
+      finishSemaphore.acquire();
+    }catch(InterruptedException ignored){
+    }
   }
 
   
