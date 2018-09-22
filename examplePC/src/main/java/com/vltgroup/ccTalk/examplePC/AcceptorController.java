@@ -83,5 +83,8 @@ public class AcceptorController implements BillAcceptorController, CoinAcceptorC
   public void onUnknownEvent(BaseDevice device, int eventCounter, int code1, int code2) {
     //log.info("{}:{} counter:{} code1:{} code2{}",device.info.type,device.info.address.address,eventCounter, code1, code2);
   }
-  
+  @Override
+  public void onDeviceDead(BaseDevice device) {
+    //log.info("{}:{}",device.info.type,device.info.address.address);
+  }
 }

@@ -162,25 +162,52 @@ public class Bus implements Closeable{
   public DeviceInfo[] getHoppers() {
     return hopper;
   }
+  
+  /**
+   * @return can return null - if device can't be successfully created
+   */
   public synchronized BillAcceptor createBillAcceptor(DeviceInfo info, BillAcceptorController controller){
     if(activeDevices.containsKey(info.address)) throw new RuntimeException("try to create device on addres already in use");
     
-    log.info("Start creating BillAcceptor");
+    log.info("Start creating BillAcceptor at:"+info.address.address);
     BillAcceptor result = new BillAcceptor(this, info, controller);
-    devicesExecutor.submit(result);
+    if(result.getNotRespondStatus()){
+      log.info("failed creating BillAcceptor at:"+info.address.address);
+      return null;
+    }
+    
     activeDevices.put(info.address, result);
-    log.info("End creating BillAcceptor, bill acc thread started");
+    devicesExecutor.submit(()->{
+      result.run();
+      activeDevices.remove(info.address);
+      log.info("BillAcceptor thread was stopped, at:"+info.address.address);
+    });
+    
+    log.info("End creating BillAcceptor, bill acc thread started, at:"+info.address.address);
     return result;
   }
   
+  /**
+   * @return can return null - if device can't be successfully created
+   */
   public synchronized CoinAcceptor createCoinAcceptor(DeviceInfo info, CoinAcceptorController controller){
     if(activeDevices.containsKey(info.address)) throw new RuntimeException("try to create device on addres already in use");
     
-    log.info("Start creating CoinAcceptor");
+    log.info("Start creating CoinAcceptor at:"+info.address.address);
     CoinAcceptor result = new CoinAcceptor(this, info, controller); 
-    devicesExecutor.submit(result);
+    if(result.getNotRespondStatus()){
+      log.info("failed creating CoinAcceptor at:"+info.address.address);
+      return null;
+    }
+    
     activeDevices.put(info.address, result);
-    log.info("End creating CoinAcceptor, coin acc thread started");
+    devicesExecutor.submit(()->{
+      result.run();
+      activeDevices.remove(info.address);
+      log.info("CoinAcceptor thread was stopped, at:"+info.address.address);
+    });
+    
+    log.info("End creating CoinAcceptor, coin acc thread started, at:"+info.address.address);
     return result;
   }
   

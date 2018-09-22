@@ -21,7 +21,7 @@ public class CoinAcceptor extends BaseDevice{
     if(info.type != DeviceType.COIN_ACC) throw new RuntimeException("invalid type");
     this.controller=controller;
     
-    Responce response = executeCommandSync(CommandHeader.Read_Buff_Credit, BillEvents.length);
+    Responce response = executeCommandSync(CommandHeader.Read_Buff_Credit, BillEvents.length,false);
     if(response != null && response.isValid){
       BillEvents events = new BillEvents(response.data,0);  
       init(events.event_counter != 0);
@@ -35,18 +35,20 @@ public class CoinAcceptor extends BaseDevice{
   protected final void init(boolean makeReset) {
     if(makeReset){
       reset(5, CommandHeader.Read_Buff_Credit, BillEvents.length);
+      if(getNotRespondStatus()) return; 
     }
 
     m_LastEventCounter=0;
     
     QueryChannelInfo();
+    if(getNotRespondStatus()) return; 
     
-    executeCommandSync(CommandHeader.ModInhibitStat,new byte[]{(byte)0xFF,(byte)0xFF},0);//TODO: inhibit channel with zero cost
-    executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0);
-    
-    if(!getNotRespondStatus()){
-      status("dummy after init", 0, NullEvent);
-    }
+    executeCommandSync(CommandHeader.ModInhibitStat,new byte[]{(byte)0xFF,(byte)0xFF},0, false);//TODO: inhibit channel with zero cost
+    if(getNotRespondStatus()) return; 
+    executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0, false);
+    if(getNotRespondStatus()) return; 
+
+    status("dummy after init", 0, NullEvent);
   } 
   
   private void QueryChannelInfo() {
@@ -55,7 +57,7 @@ public class CoinAcceptor extends BaseDevice{
     
     
     for(int channel = 1; channel < channelCostInCents.length ; ++channel){
-      Responce response = executeCommandSync(CommandHeader.REQ_CoinId, new byte[]{(byte)channel},6);
+      Responce response = executeCommandSync(CommandHeader.REQ_CoinId, new byte[]{(byte)channel},6, false);
       
       if (response != null && response.isValid){
         try{

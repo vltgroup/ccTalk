@@ -23,7 +23,7 @@ public class BillAcceptor extends BaseDevice{
     if(info.type != DeviceType.BILL_ACC) throw new RuntimeException("invalid type");
     this.controller=controller;
     
-    Responce response = executeCommandSync(CommandHeader.Read_Buffered_BillEvents, BillEvents.length);
+    Responce response = executeCommandSync(CommandHeader.Read_Buffered_BillEvents, BillEvents.length,false);
     if(response != null && response.isValid){
       BillEvents events = new BillEvents(response.data,0);  
       init(events.event_counter != 0);
@@ -37,19 +37,23 @@ public class BillAcceptor extends BaseDevice{
   protected final void init(boolean makeReset){
     if(makeReset){
       reset(5, CommandHeader.Read_Buffered_BillEvents, BillEvents.length);
+      if(getNotRespondStatus()) return; 
     }
 
     m_LastEventCounter = 0;
     m_StartEscrow = -1;
 
     queryChannelInfo();
+    if(getNotRespondStatus()) return; 
     
-    executeCommandSync(CommandHeader.ModifyBillOperatingMode, new byte[]{0x02},0);   // escrow mode
-    executeCommandSync(CommandHeader.ModInhibitStat,new byte[]{(byte)0xFF,(byte)0xFF},0);//TODO: inhibit channel with zero cost
-    executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0);
-    if(!getNotRespondStatus()){
-      status("dummy after init", 0, StackerOK);
-    }
+    executeCommandSync(CommandHeader.ModifyBillOperatingMode, new byte[]{0x02},0, false);   // escrow mode
+    if(getNotRespondStatus()) return; 
+    executeCommandSync(CommandHeader.ModInhibitStat,new byte[]{(byte)0xFF,(byte)0xFF},0, false);//TODO: inhibit channel with zero cost
+    if(getNotRespondStatus()) return; 
+    executeCommandSync(CommandHeader.ModMasterInhibit, new byte[]{m_lastInhibit ? 0 : (byte)1},0, false);
+    if(getNotRespondStatus()) return; 
+    
+    status("dummy after init", 0, StackerOK);
   }
   
   private void queryChannelInfo() {
@@ -59,7 +63,7 @@ public class BillAcceptor extends BaseDevice{
     }
     
     for(int channel = 1; channel < maxChannel; ++channel){
-      Responce billId = executeCommandSync(CommandHeader.REQ_BillId, new byte[]{(byte)channel},7);
+      Responce billId = executeCommandSync(CommandHeader.REQ_BillId, new byte[]{(byte)channel},7, false);
             
       if (billId != null && billId.isValid){
         try{
@@ -67,7 +71,7 @@ public class BillAcceptor extends BaseDevice{
           channelCostString[channel]=new String(billId.data);
           
           byte[] country =java.util.Arrays.copyOfRange(billId.data, 0, 2);
-          Responce scalingFactor = executeCommandSync(CommandHeader.REQ_ScalingFactor, country,3);
+          Responce scalingFactor = executeCommandSync(CommandHeader.REQ_ScalingFactor, country,3, false);
           byte[] temp = scalingFactor.data;
           int scaling = ( (temp[1]&0xFF) <<8 )+(temp[0] & 0xFF);
           int decimal = temp[2];
