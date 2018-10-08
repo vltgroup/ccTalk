@@ -68,7 +68,7 @@ public class BillAcceptor extends BaseDevice{
       if (billId != null && billId.isValid){
         try{
           channelCostInCents[channel]=Integer.parseInt(new String(billId.data, 2, 4));//*100;
-          channelCostString[channel]=new String(billId.data);
+          String channelCostString = new String(billId.data);
           
           byte[] country =java.util.Arrays.copyOfRange(billId.data, 0, 2);
           Responce scalingFactor = executeCommandSync(CommandHeader.REQ_ScalingFactor, country,3, false);
@@ -76,19 +76,21 @@ public class BillAcceptor extends BaseDevice{
           int scaling = ( (temp[1]&0xFF) <<8 )+(temp[0] & 0xFF);
           int decimal = temp[2];
           
-          log.info(info.shortString()+" channel index{}={} scaling={} decimal={}", channel, channelCostString[channel], scaling,decimal);
+          log.info(info.shortString()+" channel index{}={} scaling={} decimal={}", channel, channelCostString, scaling,decimal);
           channelCostInCents[channel]*=scaling;
           if(decimal == 0){
             channelCostInCents[channel]*=100;   //currency without cents, but we emulate them
+            decimal=2;
           }          
           
+          channelCost[channel] = new ChannelCost(channelCostInCents[channel],scaling,decimal,new String(country),channelCostString);
         }catch(Exception ignored){
           channelCostInCents[channel]=0;
-          channelCostString[channel]=null;
+          channelCost[channel]=null;
         }
       }else{
         channelCostInCents[channel]=0;
-        channelCostString[channel]=null;
+        channelCost[channel]=null;
       }
     }
   }

@@ -57,21 +57,25 @@ public class CoinAcceptor extends BaseDevice{
     
     
     for(int channel = 1; channel < channelCostInCents.length ; ++channel){
-      Responce response = executeCommandSync(CommandHeader.REQ_CoinId, new byte[]{(byte)channel},6, false);
+      Responce coinId = executeCommandSync(CommandHeader.REQ_CoinId, new byte[]{(byte)channel},6, false);
       
-      if (response != null && response.isValid){
+      if (coinId != null && coinId.isValid){
         try{
-          channelCostInCents[channel]=Integer.parseInt(new String(response.data, 2, 3));
-          channelCostString[channel]=new String(response.data);
+          channelCostInCents[channel]=Integer.parseInt(new String(coinId.data, 2, 3));
+          String channelCostString =new String(coinId.data);
           
-          log.info(info.shortString() + " channel index"+channel+"="+channelCostString[channel]);
+          byte[] country =java.util.Arrays.copyOfRange(coinId.data, 0, 2);
+          log.info(info.shortString()+" channel index{}={}", channel, channelCostString);
+          
+          //coin acceptors not support REQ_ScalingFactor command, so emulate it result
+          channelCost[channel] = new ChannelCost(channelCostInCents[channel],1,2,new String(country),channelCostString);
         }catch(Exception ignored){
           channelCostInCents[channel]=0;
-          channelCostString[channel]=null;
+          channelCost[channel]=null;
         }
       }else{
         channelCostInCents[channel]=0;
-        channelCostString[channel]=null;
+        channelCost[channel]=null;
       }
     }
   }

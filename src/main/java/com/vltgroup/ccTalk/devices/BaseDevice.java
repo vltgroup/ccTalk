@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 public abstract class BaseDevice implements Runnable{
   private static final Logger log = LoggerFactory.getLogger(BaseDevice.class.getName());
   protected final long[]   channelCostInCents = new long[16];  //command 231 - Modify inhibit status suport only 16 channels
-  protected final String[] channelCostString = new String[16];
+  protected final ChannelCost[] channelCost = new ChannelCost[16];
   
   public final        Bus             bus;
   public final        DeviceInfo      info;
@@ -41,8 +41,8 @@ public abstract class BaseDevice implements Runnable{
     restoreCounter=0;
   }
   
-  public String[] getChannelCost(){
-    return channelCostString;
+  public ChannelCost[] getChannelCost(){
+    return channelCost;
   }
   
   public boolean getNotRespondStatus(){
