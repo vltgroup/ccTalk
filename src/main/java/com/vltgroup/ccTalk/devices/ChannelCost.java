@@ -16,4 +16,8 @@ public class ChannelCost {
     this.costString=costString;
   }
   
+  @Override
+  public String toString() {
+    return costString;
+  }
 }
