@@ -1,15 +1,15 @@
 package com.vltgroup.ccTalk.bus;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class Address {
   public static final Address ccBroadcastDevId = new Address(0);  // ccTalk broadcast device ID 
-  public static final Address ccHostDevId = new Address(1);       // ccTalk host device ID      
-  
-  public final int address;
-  
-  public Address(int address){
-    this.address=address;
-  }
+  public static final Address ccHostDevId = new Address(1);       // ccTalk host device ID
+
+  @Getter
+  private final int address;
 
   @Override
   public int hashCode() {
@@ -24,11 +24,7 @@ public class Address {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    final Address other = (Address) obj;
-    if (this.address != other.address) {
-      return false;
-    }
-    return true;
+    return this.address == ((Address)obj).address;
   }
   
 }

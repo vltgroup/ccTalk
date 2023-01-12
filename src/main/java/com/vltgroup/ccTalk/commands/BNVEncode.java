@@ -1,13 +1,16 @@
 package com.vltgroup.ccTalk.commands;
 
 public class BNVEncode {
-  public static final int BNVCodeLength=6;
+  public static final int BNV_CODE_LENGTH = 6;
   
-  public static boolean IsValidBNVCode(byte[] BNVCode) {
-    if(BNVCode == null || BNVCode.length != BNVCodeLength) return false;
-    
-    for(byte b: BNVCode){
-      if (b != 0) return true;
+  public static boolean isValidBNVCode(byte[] BNVCode) {
+    if (BNVCode == null || BNVCode.length != BNV_CODE_LENGTH) {
+      return false;
+    }
+    for(byte b: BNVCode) {
+      if (b != 0) {
+        return true;
+      }
     }
     return false;
   }
@@ -53,8 +56,8 @@ public class BNVEncode {
       for(int i=0;i < data.length;++i) data[i] ^=initXOR;
     }
 
-    for(int i=rotatePlaces-1; i >= 0 ; --i){
-      byte c1= (data[0] & 0x80) !=0 ? (byte)1 : 0;
+    for(int i = rotatePlaces - 1; i >= 0 ; --i) {
+      byte c1 = (data[0] & 0x80) !=0 ? (byte)1 : 0;
 
       for(int j=0; j < data.length;++j){
         if((data[j] & (1 << (tapArray[ (secCode[1]+j) % 10 ]-1)  )) != 0)   c1 ^=1;
@@ -62,16 +65,14 @@ public class BNVEncode {
 
       for(int j=data.length-1; j >=0;--j){
         byte c = (data[j] & 0x80) !=0 ? (byte)1 : 0;
-      
         if( ((secCode[5] ^ feedMaster) & ( 1 << ( (i+j-1) %8  ))) != 0)  c^=1;
-      
         data[j] =(byte) ((data[j] << 1) + c1);
         c1=c;
       }
     }
 
 
-    for(int i=0;i < data.length;++i)   if((secCode[3] & (1<< (i & 0x03)  )) != 0) {
+    for (int i = 0; i < data.length;++i)   if((secCode[3] & (1<< (i & 0x03)  )) != 0) {
       byte t=data[i];
       data[i]=  (byte)( ((t & 0x01) <<7) | ((t & 0x02) <<5) | ((t & 0x04) <<3) | ((t & 0x08) <<1) |
                         ((t & 0x10) >>1) | ((t & 0x20) >>3) | ((t & 0x40) >>5) | ((t & 0x80) >>7)); 

@@ -10,15 +10,15 @@ import java.util.Arrays;
 
 
 public class Command {
-  public static final Command AddessPoll = new Command(Address.ccBroadcastDevId, CommandHeader.ADDRESS_POLL);
-  
+  public static final Command AddressPoll = new Command(Address.ccBroadcastDevId, CommandHeader.ADDRESS_POLL);
   public final Address destination;
   public final Address source;
   public final CommandHeader command;
   private final int _command;
+
   public final byte[] data;
 
-  public Command(Address destination, CommandHeader command) {                    //for send
+  public Command(Address destination, CommandHeader command) {                    // for send
     this.destination = destination;
     this.source      = Address.ccHostDevId;
     this.command     = command;
@@ -26,16 +26,15 @@ public class Command {
     data = new byte[0];
   }
 
-  public Command(Address destination, CommandHeader command, byte[] data) {     //for send
+  public Command(Address destination, CommandHeader command, byte[] data) {     // for send
     this.destination = destination;
     this.source      = Address.ccHostDevId;
     this.command     = command;
     _command = command.command;
     this.data        = data;
   }
-  
-  
-  private Command(Address destination, Address source, int command, byte[] data) { //for recieve
+
+  private Command(Address destination, Address source, int command, byte[] data) { // for receive
     this.destination = destination;
     this.source      = source;
     this.command     = null;
@@ -44,69 +43,69 @@ public class Command {
   }
 
   public Crc8 calcCrc8(){
-    Crc8 crc8 = new Crc8();
-    crc8.update((byte)destination.address);
+    final Crc8 crc8 = new Crc8();
+    crc8.update((byte)destination.getAddress());
     crc8.update((byte)data.length);
-    crc8.update((byte)source.address);
+    crc8.update((byte)source.getAddress());
     crc8.update((byte)_command);
     crc8.update(data);
-    
     return crc8;
   }
   
   public Crc16 calcCrc16(){
-    Crc16 crc16 = new Crc16();
-    crc16.update((byte)destination.address);
+    final Crc16 crc16 = new Crc16();
+    crc16.update((byte)destination.getAddress());
     crc16.update((byte)data.length);
     crc16.update((byte)_command);
     crc16.update(data);
-    
     return crc16;
   }
   
   public byte[] getBytesCRC8(){
-    Crc8 crc8 = calcCrc8();
-
-    ByteArrayOutputStream raw = new ByteArrayOutputStream();
-    raw.write( (byte)destination.address );
+    final Crc8 crc8 = calcCrc8();
+    final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+    raw.write( (byte)destination.getAddress() );
     raw.write( (byte)data.length );
-    raw.write( (byte)source.address );
+    raw.write( (byte)source.getAddress() );
     raw.write( (byte)_command);
     try {
       raw.write( data );
     } catch (IOException ignored) { }
     raw.write( crc8.getCrc() );
-
     return raw.toByteArray();
   }
-  private Responce constructResponce(int expectedDataLength){
-    boolean isValid=true;
-    if(_command != CommandHeader.ACK.command) isValid=false;
-    if(expectedDataLength >= 0 && data.length != expectedDataLength) isValid=false;
-    return new Responce(_command, data, isValid);
+
+  private Response constructResponse(int expectedDataLength) {
+    boolean isValid = _command == CommandHeader.ACK.command || _command == CommandHeader.NACK.command;
+    if (expectedDataLength >= 0 && data.length != expectedDataLength) isValid = false;
+    return new Response(_command, data, isValid);
   }
   
   
-  public static Responce decodeCommand(Address sender, byte[] raw, DeviceMode mode, byte[] BNVCode, int expectedDataLength){
-    if(raw.length < 5) return null;
+  public static Response decodeCommand(Address sender, byte[] raw, DeviceMode mode, byte[] BNVCode, int expectedDataLength){
+    if (raw.length < 5) return null;
     
     int destination   = 0xFF & raw[0];
     int dataLength    = 0xFF & raw[1];
 
-    if(raw.length - 5 != dataLength) return null;
-    if(destination != Address.ccHostDevId.address) return null; // This is not our packet, i.e. destination address is not 1 (host) - flush it!
+    if (raw.length - 5 != dataLength) return null;
+    if (destination != Address.ccHostDevId.getAddress()) {
+      return null; // This is not our packet, i.e. destination address is not 1 (host) - flush it!
+    }
     
     switch(mode){
       case CRC8:
         { int source        = 0xFF & raw[2];
           int commandHeader = 0xFF & raw[3];
           byte crc          = raw[raw.length-1];
-          if(source != sender.address) return null; 
+          if (source != sender.getAddress()) return null;
           byte[] data       = Arrays.copyOfRange(raw, 4, raw.length-1);
 
-          Command result  = new Command(Address.ccHostDevId, new Address(source), commandHeader, data);
-          if(result.calcCrc8().getCrc() != crc) return null;
-          return result.constructResponce(expectedDataLength);
+          final Command result  = new Command(Address.ccHostDevId, new Address(source), commandHeader, data);
+          if (result.calcCrc8().getCrc() != crc) {
+            return null;
+          }
+          return result.constructResponse(expectedDataLength);
         }
      case ENCRYPTED:  
         byte[] toDecrypt = java.util.Arrays.copyOfRange(raw, 2, raw.length);
@@ -120,9 +119,9 @@ public class Command {
           int crc16 = (MSB << 8) | LSB;
           byte[] data       = Arrays.copyOfRange(raw, 4, raw.length-1);
           
-          Command result  = new Command(Address.ccHostDevId, sender, commandHeader, data);
-          if(result.calcCrc16().getCRC() != crc16) return null;
-          return result.constructResponce(expectedDataLength);
+          final Command result  = new Command(Address.ccHostDevId, sender, commandHeader, data);
+          if (result.calcCrc16().getCRC() != crc16) return null;
+          return result.constructResponse(expectedDataLength);
         }
     }
     return null;  //can't be here
@@ -130,10 +129,9 @@ public class Command {
   
 
   public byte[] getBytesCRC16() {
-    Crc16 crc16 = calcCrc16();
-
+    final Crc16 crc16 = calcCrc16();
     ByteArrayOutputStream raw = new ByteArrayOutputStream();
-    raw.write((byte)destination.address);
+    raw.write((byte)destination.getAddress());
     raw.write((byte)data.length);
     raw.write((byte)(crc16.getCRC() & 0xff));// LSB
     raw.write((byte)_command);
@@ -141,7 +139,6 @@ public class Command {
       raw.write( data );
     } catch (IOException ignored) { }
     raw.write((byte)((crc16.getCRC() >> 8) & 0xff)); // MSB
-
     return raw.toByteArray();
   }
   
@@ -150,18 +147,17 @@ public class Command {
     byte[] toEncrypt = java.util.Arrays.copyOfRange(raw, 2, raw.length);
     BNV_encrypt(BNVCode, toEncrypt);
     System.arraycopy(toEncrypt, 0, raw, 2, toEncrypt.length);
-    
     return raw;
   }
   
   final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
   public static String bytesToHex(byte[] bytes) {
-    StringBuilder sb =new StringBuilder(bytes.length * 3);
-    for(int j = 0;j<bytes.length; ++j){
-        int v = bytes[j] & 0xFF;
-        sb.append(hexArray[v >>> 4]);
-        sb.append(hexArray[v & 0x0F]);
-        sb.append(' ');
+    final StringBuilder sb = new StringBuilder(bytes.length * 3);
+    for (int j = 0; j < bytes.length; ++j) {
+      int v = bytes[j] & 0xFF;
+      sb.append(hexArray[v >>> 4]);
+      sb.append(hexArray[v & 0x0F]);
+      sb.append(' ');
     }
     return sb.toString();
   }

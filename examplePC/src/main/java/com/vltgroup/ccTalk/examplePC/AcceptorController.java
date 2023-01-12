@@ -5,11 +5,11 @@ import com.vltgroup.ccTalk.devices.BillAcceptor;
 import com.vltgroup.ccTalk.devices.BillAcceptorController;
 import com.vltgroup.ccTalk.devices.CoinAcceptor;
 import com.vltgroup.ccTalk.devices.CoinAcceptorController;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 public class AcceptorController implements BillAcceptorController, CoinAcceptorController{
-  private static final Logger log = LoggerFactory.getLogger(AcceptorController.class.getName());
 
   @Override
   public boolean onBillEscrow(BillAcceptor device, long cents) {
@@ -29,7 +29,7 @@ public class AcceptorController implements BillAcceptorController, CoinAcceptorC
   }
 
   @Override
-  public void onFraudAttemt(BillAcceptor device, String message, int eventCounter, int code) {
+  public void onFraudAttempt(BillAcceptor device, String message, int eventCounter, int code) {
     //log.info("{}:{} {}",device.info.type,device.info.address.address,message);
   }
 
@@ -50,7 +50,7 @@ public class AcceptorController implements BillAcceptorController, CoinAcceptorC
   }
 
   @Override
-  public void onFraudAttemt(CoinAcceptor device, String message, int eventCounter, int code) {
+  public void onFraudAttempt(CoinAcceptor device, String message, int eventCounter, int code) {
     //log.info("{}:{} {}",device.info.type,device.info.address.address,message);
   }
 
@@ -60,7 +60,7 @@ public class AcceptorController implements BillAcceptorController, CoinAcceptorC
   }
 
   @Override
-  public void onCoinInsertedTooQuikly(CoinAcceptor device, String message, int eventCounter, int code) {
+  public void onCoinInsertedTooQuickly(CoinAcceptor device, String message, int eventCounter, int code) {
     //log.info("{}:{} {}",device.info.type,device.info.address.address,message);
   }
 

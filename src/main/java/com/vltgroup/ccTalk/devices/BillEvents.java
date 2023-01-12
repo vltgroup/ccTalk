@@ -18,33 +18,33 @@ class BillEvents {
     
     events[1][0] = 0xFF & data[3];
     events[1][1] = 0xFF & data[4];
-    counter[1] = DecEventCounter(counter[0], currentCounter);
+    counter[1] = decEventCounter(counter[0], currentCounter);
     if(currentCounter == counter[1]){ start_index=0; return;}
     
     events[2][0] = 0xFF & data[5];
     events[2][1] = 0xFF & data[6];
-    counter[2] = DecEventCounter(counter[1], currentCounter);
+    counter[2] = decEventCounter(counter[1], currentCounter);
     if(currentCounter == counter[2]){ start_index=1; return;}
     
     events[3][0] = 0xFF & data[7];
     events[3][1] = 0xFF & data[8];
-    counter[3] = DecEventCounter(counter[2], currentCounter);
+    counter[3] = decEventCounter(counter[2], currentCounter);
     if(currentCounter == counter[3]){ start_index=2; return;}
     
     events[4][0] = 0xFF & data[9];
     events[4][1] = 0xFF & data[10];
-    counter[4] = DecEventCounter(counter[3], currentCounter);
+    counter[4] = decEventCounter(counter[3], currentCounter);
     if(currentCounter == counter[4]){ start_index=3; return;}
     
     start_index=4;
   }
   
-  private int DecEventCounter(int counter, final int currentCounter){
-    if(currentCounter == 0 && counter == 0) return 0;
-    if(currentCounter == 0)  return counter-1;
+  private int decEventCounter(int counter, final int currentCounter){
+    if (currentCounter == 0 && counter == 0) return 0;
+    if (currentCounter == 0) return counter-1;
     
     --counter;
-    if(counter == 0) counter = 255;
+    if (counter == 0) counter = 255;
     return counter;
   }
   

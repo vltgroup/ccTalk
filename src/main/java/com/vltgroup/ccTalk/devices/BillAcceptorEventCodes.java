@@ -2,9 +2,7 @@ package com.vltgroup.ccTalk.devices;
 
 
 public class BillAcceptorEventCodes {
-
-  public static final int MasterInhibit =0;           //Status 
-  
+  public static final int MasterInhibit =0;           //Status
   public static final int BillReturned=1;             //Status - in fact Reject
   public static final int BillReject_ByValidation=2;  //Reject
   public static final int BillReject_Transport=3;     //Reject
@@ -12,7 +10,7 @@ public class BillAcceptorEventCodes {
   public static final int BillReject_Inhibited2=5;    //Status - in fact Reject
 
   public static final int StackerOK=10;               //Status 
-  public static final int StackerRremoved=11;         //Status 
+  public static final int StackerRemoved =11;         //Status
   public static final int StackerInserted=12;         //Status 
   public static final int StackerFull=14;             //Status 
   

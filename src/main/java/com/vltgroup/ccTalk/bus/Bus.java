@@ -1,178 +1,170 @@
 package com.vltgroup.ccTalk.bus;
 
-import com.vltgroup.ccTalk.comport.ComPort;
-import static com.vltgroup.ccTalk.commands.BNVEncode.IsValidBNVCode;
 import com.vltgroup.ccTalk.commands.Command;
-import static com.vltgroup.ccTalk.commands.Command.bytesToHex;
-import com.vltgroup.ccTalk.commands.Responce;
 import com.vltgroup.ccTalk.commands.CommandHeader;
+import com.vltgroup.ccTalk.commands.Response;
+import com.vltgroup.ccTalk.comport.ComPort;
 import com.vltgroup.ccTalk.devices.BaseDevice;
 import com.vltgroup.ccTalk.devices.BillAcceptor;
 import com.vltgroup.ccTalk.devices.BillAcceptorController;
 import com.vltgroup.ccTalk.devices.CoinAcceptor;
 import com.vltgroup.ccTalk.devices.CoinAcceptorController;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class Bus implements Closeable{
-  private static final Logger log = LoggerFactory.getLogger(Bus.class.getName());
-  
-  private final ComPortPacketer port;
-  private final ReentrantLock fairLock;
+import static com.vltgroup.ccTalk.commands.BNVEncode.isValidBNVCode;
+import static com.vltgroup.ccTalk.commands.Command.bytesToHex;
+
+@Slf4j
+public class Bus implements Closeable {
+  private final ComPortPacketSlicer port;
+  private final ReentrantLock fairLock = new ReentrantLock(true);
   private final Map<Address, DeviceMode> busMode = new HashMap<>();
   protected final ExecutorService devicesExecutor;
-  protected final Map<Address,BaseDevice> activeDevices = new HashMap<>();
-  
-  private final DeviceInfo[] billAcc;
-  private final DeviceInfo[] coinAcc;
-  private final DeviceInfo[] hopper;
+  protected final Map<Address,BaseDevice> activeDevices = new ConcurrentHashMap<>();
+
+  @Getter
+  private final ArrayList<DeviceInfo> billAcceptors = new ArrayList<>();
+  @Getter
+  private final ArrayList<DeviceInfo> coinAcceptors = new ArrayList<>();
+  @Getter
+  private final ArrayList<DeviceInfo> hoppers = new ArrayList<>();
 
   private final byte[] BNVCode;
   
-  private static final int betweenBytesTimeout=50;       //ccTalk part 1 v4.6   11.1
-  private static final int beforeFirstByteTimeout=100;   //ccTalk standart says that it can be even 2 seconds - but it unusable, because ccTalk devices don't have any anticollision logic
-    
+  private static final int betweenBytesTimeout = 50;       //ccTalk part 1 v4.6   11.1
+  private static final int beforeFirstByteTimeout = 100;   //ccTalk standard says that it can be even 2 seconds - but it unusable, because ccTalk devices don't have any anticollision logic
+
   public Bus(ComPort port, byte[] BNVCode) {
-    fairLock=new ReentrantLock(true);
-    this.port = new ComPortPacketer(port, betweenBytesTimeout, beforeFirstByteTimeout,ComPortPacketer.EchoMode.intelligentEcho);
-    //Command packetForDetectEcho = new Command(Address.ccHostDevId, CommandHeader.SIMPLE_POLL);
-    //this.port.detectEcho(packetForDetectEcho.getBytesCRC8());
+    this.port = new ComPortPacketSlicer(port, betweenBytesTimeout, beforeFirstByteTimeout, ComPortPacketSlicer.EchoMode.intelligentEcho);
     this.BNVCode = BNVCode;
-    
-    log.info("scan CRC8:");
-    for(byte deviceId : scanBus(DeviceMode.CRC8)) {
-      busMode.put(new Address(deviceId & 0xFF), DeviceMode.CRC8);
-      log.info("find:"+(0xFF & deviceId));
+
+    searchDevices(DeviceMode.CRC8);
+    searchDevices(DeviceMode.CRC16);
+
+    if (isValidBNVCode(BNVCode)) {
+      searchDevices(DeviceMode.ENCRYPTED);
     }
-    
-    log.info("scan CRC16:");
-    for(byte deviceId : scanBus(DeviceMode.CRC16)) {
-      busMode.put(new Address(deviceId & 0xFF), DeviceMode.CRC16);
-      log.info("find:"+(0xFF & deviceId));
-    }
-    
-    log.info("scan ENCRYPTED:");
-    if(IsValidBNVCode(BNVCode)){
-      for(byte deviceId : scanBus(DeviceMode.ENCRYPTED)) {
-        busMode.put(new Address(deviceId & 0xFF), DeviceMode.ENCRYPTED);
-        log.info("find:"+(0xFF & deviceId));
-      }
-    }
-    log.info("scan FINISHED");
-    
-    
-    ArrayList<DeviceInfo> billAcc = new ArrayList<>();
-    ArrayList<DeviceInfo> coinAcc = new ArrayList<>();
-    ArrayList<DeviceInfo> hopper = new ArrayList<>();
-    
-    for(Address device: busMode.keySet()){
-      Responce resp = executeCommand( new Command(device, CommandHeader.REQ_DEV_CATEGORY_ID), -1);
-      if(resp != null && resp.data.length != 0){
-        String data = new String(resp.data);
+
+    log.info("Scan finished - device(s) found {}", busMode.values().size());
+
+    for (Address device: busMode.keySet()){
+      Response resp = executeCommand( new Command(device, CommandHeader.REQ_DEV_CATEGORY_ID), -1);
+      if (resp != null && resp.data.length != 0) {
+        String deviceType = new String(resp.data);
         DeviceMode mode = busMode.get(device);
-        
-        if(data.equals("Payout") ){
-          DeviceInfo info = queryDeviceInfo(device,mode, DeviceType.HOPPER);
-          log.info("add Hopper:"+info.toString());
-          hopper.add(info);
-        }else if(data.equals("Coin Acceptor")){
-          DeviceInfo info = queryDeviceInfo(device,mode, DeviceType.COIN_ACC);
-          log.info("add Coin Acceptor:"+info.toString());
-          coinAcc.add(info);
-        }else if(data.equals("Bill Validator")){
-          DeviceInfo info = queryDeviceInfo(device,mode, DeviceType.BILL_ACC);
-          log.info("add Bill Validator:"+info.toString());
-          billAcc.add(info);
+        if (deviceType.equals(DeviceType.HOPPER.getSignature())) {
+          final DeviceInfo payout = queryDeviceInfo(device, mode, DeviceType.HOPPER);
+          log.info("Adding Hopper: {}", payout);
+          hoppers.add(payout);
+        } else if (deviceType.equals(DeviceType.COIN_ACC.getSignature())) {
+          final DeviceInfo ca = queryDeviceInfo(device, mode, DeviceType.COIN_ACC);
+          log.info("Adding Coin Acceptor: {}", ca);
+          coinAcceptors.add(ca);
+        } else if (deviceType.equals(DeviceType.BILL_ACC.getSignature())) {
+          final DeviceInfo ba = queryDeviceInfo(device, mode, DeviceType.BILL_ACC);
+          log.info("Adding Bill Validator: {}", ba);
+          billAcceptors.add(ba);
+        } else {
+          log.warn("Found device of unsupported type: {}", deviceType);
         }
       }
     }
-    
-    this.billAcc=billAcc.toArray(new DeviceInfo[billAcc.size()]);
-    this.coinAcc=coinAcc.toArray(new DeviceInfo[coinAcc.size()]);
-    this.hopper=hopper.toArray(new DeviceInfo[hopper.size()]);
-    
+
     devicesExecutor = Executors.newCachedThreadPool();
   }
 
+  private void searchDevices(DeviceMode deviceMode) {
+    log.info("Scanning {}:", deviceMode);
+    for (byte deviceId : scanBus(deviceMode)) {
+      busMode.put(new Address(deviceId & 0xFF), deviceMode);
+      log.info("  + found device w/addr: {}", (0xFF & deviceId));
+    }
+  }
+
   private byte[] scanBus(DeviceMode mode) {
-    final Command command=Command.AddessPoll;
-    log.debug("addr={} cmd={} dat={}",command.destination.address,command.command,bytesToHex(command.data));
+    final Command command = Command.AddressPoll;
+    log.debug("addr={} cmd={} dat={}", command.destination.getAddress(), command.command, bytesToHex(command.data));
     byte[] raw = getRawBytes(command, mode);
     return port.sendPacket(raw, 1500);
   }
   
   private DeviceInfo queryDeviceInfo(Address device, DeviceMode mode, DeviceType type) {
-    Responce ManufacturerId   = executeCommand(new Command(device, CommandHeader.REQ_ManufacturerId), -1);
-    Responce ProductCode      = executeCommand(new Command(device, CommandHeader.REQ_ProductCode),    -1);
-    Responce SerialNumber     = executeCommand(new Command(device, CommandHeader.REQ_SerialNumber),   -1);
-    Responce PollingPriority  = executeCommand(new Command(device, CommandHeader.REQ_PollingPriority),2);
-    Responce SoftwareVer      = executeCommand(new Command(device, CommandHeader.REQ_SoftwareVer),    -1);
-    
-    
-    
-    byte[] sn = SerialNumber.data;
+    Response ManufacturerId   = executeCommand(new Command(device, CommandHeader.REQ_ManufacturerId), -1);
+    Response productCode      = executeCommand(new Command(device, CommandHeader.REQ_ProductCode),    -1);
+    Response serialNumber     = executeCommand(new Command(device, CommandHeader.REQ_SerialNumber),   -1);
+    Response pollingPriority  = executeCommand(new Command(device, CommandHeader.REQ_PollingPriority),2);
+    Response softwareVer      = executeCommand(new Command(device, CommandHeader.REQ_SoftwareVer),    -1);
+
+    byte[] sn = serialNumber.data;
     long serial=0;
     String manufacturerId = new String(ManufacturerId.data);
-    if(manufacturerId.equals("ITL")){
-      for(int i=0; i<sn.length; ++i){
+    if (manufacturerId.equals("ITL")) {
+      for(int i = 0; i < sn.length; ++i) {
         serial = (serial << 8) | (0xFF & sn[i]);
       }
-    }else{
-      for(int i=sn.length-1; i>=0; --i){
+    } else {
+      for(int i = sn.length-1; i >= 0; --i) {
         serial = (serial << 8) | (0xFF & sn[i]);
       }
     }
     
-    long[] multiplier = {
+    final long[] multiplier = {
       0,
       1,
       10,
       1000,
       60000,
-      60 * 60000,
-      60 * 60000 * 24,
-      60 * 60000 * 24 * 7,
-      60 * 60000 * 24 * 30,
-      60 * 60000 * 24 * 365
+      60 * 60000L,
+      60 * 60000L * 24,
+      60 * 60000L * 24 * 7,
+      60 * 60000L * 24 * 30,
+      60 * 60000L * 24 * 365
     };
     
-    long pollingInterval = -1; //means invalid
-    if(PollingPriority.data.length >= 2 && PollingPriority.data[0] >= 1 && PollingPriority.data[0] < multiplier.length){
-      pollingInterval = multiplier[ PollingPriority.data[0] ] * (PollingPriority.data[1] & 0xff); 
+    long pollingInterval = -1; // means invalid
+
+    if (pollingPriority.data.length >= 2 && pollingPriority.data[0] >= 1 && pollingPriority.data[0] < multiplier.length){
+      pollingInterval = multiplier[ pollingPriority.data[0] ] * (pollingPriority.data[1] & 0xff);
     }
-    
-    
-    return new DeviceInfo(device, mode, type, manufacturerId, new String(ProductCode.data), new String(SoftwareVer.data),
-            serial, pollingInterval);
+
+    return new DeviceInfo(device,
+                          mode,
+                          type,
+                          manufacturerId,
+                          new String(productCode.data),
+                          new String(softwareVer.data),
+                          serial,
+                          pollingInterval
+                        );
   }
 
-  public DeviceInfo[] getBillAcceptors() {
-    return billAcc;
+  private void assertNotRegistered(Address address) {
+    if (activeDevices.containsKey(address)) {
+      throw new RuntimeException("address already in use");
+    }
   }
-  public DeviceInfo[] getCoinAcceptors() {
-    return coinAcc;
-  }
-  public DeviceInfo[] getHoppers() {
-    return hopper;
-  }
-  
+
   /**
    * @return can return null - if device can't be successfully created
    */
   public synchronized BillAcceptor createBillAcceptor(DeviceInfo info, BillAcceptorController controller){
-    if(activeDevices.containsKey(info.address)) throw new RuntimeException("try to create device on addres already in use");
+    assertNotRegistered(info.address);
     
-    log.info("Start creating BillAcceptor at:"+info.address.address);
-    BillAcceptor result = new BillAcceptor(this, info, controller);
-    if(result.getNotRespondStatus()){
-      log.info("failed creating BillAcceptor at:"+info.address.address);
+    log.info("Creating bill acceptor at: {}", info.address.getAddress());
+
+    final BillAcceptor result = new BillAcceptor(this, info, controller);
+    if (result.getNotRespondStatus()) {
+      log.info("Failed creating bill acceptor at: {}", info.address.getAddress());
       return null;
     }
     
@@ -180,10 +172,10 @@ public class Bus implements Closeable{
     devicesExecutor.submit(()->{
       result.run();
       activeDevices.remove(info.address);
-      log.info("BillAcceptor thread was stopped, at:"+info.address.address);
+      log.info("Bill acceptor thread stopped, at: {}", info.address.getAddress());
     });
     
-    log.info("End creating BillAcceptor, bill acc thread started, at:"+info.address.address);
+    log.info("Bill acceptor created and thread started, at: {}", info.address.getAddress());
     return result;
   }
   
@@ -191,66 +183,66 @@ public class Bus implements Closeable{
    * @return can return null - if device can't be successfully created
    */
   public synchronized CoinAcceptor createCoinAcceptor(DeviceInfo info, CoinAcceptorController controller){
-    if(activeDevices.containsKey(info.address)) throw new RuntimeException("try to create device on addres already in use");
+    assertNotRegistered(info.address);
     
-    log.info("Start creating CoinAcceptor at:"+info.address.address);
-    CoinAcceptor result = new CoinAcceptor(this, info, controller); 
-    if(result.getNotRespondStatus()){
-      log.info("failed creating CoinAcceptor at:"+info.address.address);
+    log.info("Creating coin acceptor at: {}", info.address.getAddress());
+
+    final CoinAcceptor result = new CoinAcceptor(this, info, controller);
+    if (result.getNotRespondStatus()) {
+      log.info("Failed creating coin acceptor at: {}", info.address.getAddress());
       return null;
     }
     
     activeDevices.put(info.address, result);
+
     devicesExecutor.submit(()->{
       result.run();
       activeDevices.remove(info.address);
-      log.info("CoinAcceptor thread was stopped, at:"+info.address.address);
+      log.info("Coin acceptor thread stopped, at: {}", info.address.getAddress());
     });
     
-    log.info("End creating CoinAcceptor, coin acc thread started, at:"+info.address.address);
+    log.info("Coin acceptor created and thread started, at: {}", info.address.getAddress());
     return result;
   }
   
   @Override
-  public synchronized void close(){
-    for(Map.Entry<Address, BaseDevice> dev: activeDevices.entrySet()){
-      dev.getValue().stop();
+  public synchronized void close() {
+    for (BaseDevice device : new ArrayList<>(activeDevices.values())) { // copy array to avoid concurrent modification
+      device.stop();
     }
     activeDevices.clear();
   }
   
   public void setMasterInhibitStatusAllDevicesSync(boolean inhibit){
-    for(Map.Entry<Address, BaseDevice> dev: activeDevices.entrySet()){
-      dev.getValue().setMasterInhibitStatusSync(inhibit);
+    for (BaseDevice device : activeDevices.values()) {
+      device.setMasterInhibitStatusSync(inhibit);
     }
   }
   
   public void setMasterInhibitStatusAllDevicesAsync(boolean inhibit){
-    for(Map.Entry<Address, BaseDevice> dev: activeDevices.entrySet()){
-      dev.getValue().setMasterInhibitStatusAsync(inhibit);
+    for (BaseDevice device : activeDevices.values()) {
+      device.setMasterInhibitStatusAsync(inhibit);
     }
   }
   
-  
   /**
-   * @param expectedDataLength - if negative - means does'n matter
+   * @param expectedDataLength - if negative - means doesn't matter
    */
-  public Responce executeCommand(Command command, int expectedDataLength) {
+  public Response executeCommand(Command command, int expectedDataLength) {
     return executeCommand(command,expectedDataLength, 3);
   }
   
-  private Responce executeCommand(Command command, int expectedDataLength, int retry) {
-    Responce response=null;
-    
+  private Response executeCommand(Command command, int expectedDataLength, int retry) {
+    Response response;
     do {
       byte[] raw = sendCommand(command);
       DeviceMode mode = busMode.get(command.destination);
       response = Command.decodeCommand(command.destination, raw, mode, BNVCode, expectedDataLength);
     } while(retry-- > 1 && (response==null || !response.isValid)); 
-    if(response == null){
-      log.info("no respond on command addr={} cmd={} dat={}",command.destination.address, command.command,  bytesToHex(command.data));
-    }else if(!response.isValid){
-      log.info("respond on command  addr={} cmd={} dat={} is invaid: {} {}",command.destination.address, command.command,  bytesToHex(command.data), response.responceHeader, bytesToHex(response.data));
+    if (response == null) {
+      log.info("no response on command addr={} cmd={} dat={}", command.destination.getAddress(), command.command, bytesToHex(command.data));
+    } else if (!response.isValid) {
+      log.info("response on command addr={} cmd={} dat={} is invalid: {} {}",command.destination.getAddress(), command.command, bytesToHex(command.data), response.getResponseHeader(), bytesToHex(response.data));
     }
     return response;
   }
@@ -260,19 +252,18 @@ public class Bus implements Closeable{
   }
 
   private byte[] sendCommand(Command command, DeviceMode mode) {
-    log.debug("addr={} cmd={} dat={}",command.destination.address,command.command,bytesToHex(command.data));
-    fairLock.lock();   //fair sync here
-    try{
-      byte[] raw=getRawBytes(command, mode);
+    log.debug("addr={} cmd={} dat={}", command.destination.getAddress(), command.command, bytesToHex(command.data));
+    fairLock.lock();   // fair sync here
+    try {
+      byte[] raw = getRawBytes(command, mode);
       return port.sendPacket(raw, 0);
-    }finally{
+    } finally {
       fairLock.unlock();
     }
-    
   }
   
   private byte[] getRawBytes(Command command, DeviceMode mode){
-    byte[] raw=null;
+    byte[] raw = null;
     switch(mode){
       case CRC8:      raw = command.getBytesCRC8(); break;
       case CRC16:     raw = command.getBytesCRC16(); break;
